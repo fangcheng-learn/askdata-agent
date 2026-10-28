@@ -1,0 +1,7 @@
+{
+  "name": "goal_analysis",
+  "description": "目标进度与缺口；参数缺失时澄清",
+  "allowed_tools": [],
+  "max_tool_calls": 0,
+  "output_actions": []
+}

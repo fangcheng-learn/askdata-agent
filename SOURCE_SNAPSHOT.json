@@ -1,0 +1,1483 @@
+{
+  "source_project": "dataagent",
+  "scope": "AskData Studio and related Harness files",
+  "copied_files": 295,
+  "copied_bytes": 142846883,
+  "files": [
+    {
+      "path": "references/askdata_studio/start",
+      "bytes": 58,
+      "sha256": "381acaada83452212642a240bb3d57d38287efa8eedf3d543e525e04ed0a330c"
+    },
+    {
+      "path": "references/askdata_studio/README.md",
+      "bytes": 2307,
+      "sha256": "f099d5d593221e63459d638bf352e6bf539a862fe478ceb8f68c2c3dc108c49c"
+    },
+    {
+      "path": "references/askdata_studio/.gitignore",
+      "bytes": 181,
+      "sha256": "e997415891f08c7bcf73e08dc0218520e484ef4796b2677255e5e866520e0555"
+    },
+    {
+      "path": "references/askdata_studio/frontend/index.html",
+      "bytes": 441,
+      "sha256": "b4aa43eb5d2e2b4587ac7ed746d858dbc29be18a376ff58c728f25ecaed8c966"
+    },
+    {
+      "path": "references/askdata_studio/frontend/npm-local.cmd",
+      "bytes": 75,
+      "sha256": "78481c1aa647cab469177a9e8c0efe246fd8c9b5f49e119a0405d618cce2accd"
+    },
+    {
+      "path": "references/askdata_studio/frontend/package-lock.json",
+      "bytes": 48567,
+      "sha256": "29d8b9f26ba1826ba35600bb4cb88d815d34815e6e61cd90dbad9e9f19037426"
+    },
+    {
+      "path": "references/askdata_studio/frontend/package.json",
+      "bytes": 395,
+      "sha256": "d8423de3bb1b881ed0098672d3beb5479f0c9421178828c8c3eb1dfca6299149"
+    },
+    {
+      "path": "references/askdata_studio/frontend/tsconfig.json",
+      "bytes": 421,
+      "sha256": "0af9c11bc0c91c0b4ff2af370bf89e1c49056fef817bd748491234a3044f6d48"
+    },
+    {
+      "path": "references/askdata_studio/frontend/.env.example",
+      "bytes": 62,
+      "sha256": "ea76ca11afebe2cd99c2390aca0c732e6919255380dbd1bacbcc375f6d1c041e"
+    },
+    {
+      "path": "references/askdata_studio/frontend/vite.config.ts",
+      "bytes": 264,
+      "sha256": "5d54d070f53894ec2ea44dae785dc6c648d7b8a874e70cc45d7d89421bb876b4"
+    },
+    {
+      "path": "references/askdata_studio/frontend/pnpm-workspace.yaml",
+      "bytes": 29,
+      "sha256": "ac02d96368617c760f093cfe61fdec64b6244007ab3553e0d6621f706f54a353"
+    },
+    {
+      "path": "references/askdata_studio/frontend/src/App.vue",
+      "bytes": 34875,
+      "sha256": "5cfd5e770ec30ff62ea01a229a0e49cecae638881a92e383c1362dc839ce87b0"
+    },
+    {
+      "path": "references/askdata_studio/frontend/src/main.ts",
+      "bytes": 112,
+      "sha256": "360621fd03e8a6c165925fb79f98ea5448c0e68649f4707343347f7d1791a0f2"
+    },
+    {
+      "path": "references/askdata_studio/frontend/src/api.ts",
+      "bytes": 3466,
+      "sha256": "301dc70998e0e83122f9f3b7abc73eec0f82ac233c71dae326fc0d6283584d8b"
+    },
+    {
+      "path": "references/askdata_studio/frontend/src/types.ts",
+      "bytes": 7347,
+      "sha256": "4dcd4dacf1af059461ebfb0887c7e0d72bc25f97a85c237f1a10a375cd7a40d2"
+    },
+    {
+      "path": "references/askdata_studio/frontend/src/vite-env.d.ts",
+      "bytes": 39,
+      "sha256": "bf144e3cdae616e27b064c8c2b94b14525e220fb3facc4cb4884d21b65eb5aa5"
+    },
+    {
+      "path": "references/askdata_studio/frontend/src/style.css",
+      "bytes": 34871,
+      "sha256": "75f1b6bd07b275f8f80a52fe2d2399bf5092a355e9937e34ff81eef2edd4ec7d"
+    },
+    {
+      "path": "references/askdata_studio/frontend/src/components/ResultTableCard.vue",
+      "bytes": 10861,
+      "sha256": "bf9c17085e8a17f6d86cb146fb5441794c414065b1e35a32c1a59e8a59816bdf"
+    },
+    {
+      "path": "references/askdata_studio/frontend/src/components/ReportCard.vue",
+      "bytes": 2852,
+      "sha256": "a4f0ca15b1954727fe2819e2b72464fd08f71e59f71b5d363d43d5c993012744"
+    },
+    {
+      "path": "references/askdata_studio/frontend/src/components/AnalysisChart.vue",
+      "bytes": 2720,
+      "sha256": "5d00a49d40ae61567b37f6b537d876a7693feb1044d1d08ff737ed51f97c45c7"
+    },
+    {
+      "path": "references/askdata_studio/frontend/src/components/MarkdownReport.vue",
+      "bytes": 4037,
+      "sha256": "e04766f428c5d4e62bb066336a38c56a398c4795901a34a1f91f96b7465f580b"
+    },
+    {
+      "path": "references/askdata_studio/frontend/src/components/HarnessPanel.vue",
+      "bytes": 5929,
+      "sha256": "d896e9db3d12c841ed7c621a744f0ce2d7687541ac08ff4f05a4445ba1dbb78c"
+    },
+    {
+      "path": "references/askdata_studio/backend/run.py",
+      "bytes": 105,
+      "sha256": "b75426c67ff5b99f9ac8a66e957607da532f568a35aa729ae0ce149e968ac531"
+    },
+    {
+      "path": "references/askdata_studio/backend/requirements.txt",
+      "bytes": 162,
+      "sha256": "1542fccf024dc9f2cc5e581b53d98fc94ac1db19b509b44da7b7c435f31d27a9"
+    },
+    {
+      "path": "references/askdata_studio/backend/seed_demo_data.py",
+      "bytes": 219,
+      "sha256": "d6f440526f297934c24e1242b9c27faa5c7db13f8899367cfea3e097852ff6c5"
+    },
+    {
+      "path": "references/askdata_studio/backend/.env.example",
+      "bytes": 747,
+      "sha256": "82f877197500617f3e077a4e0d8571657deafe3bca7454606f1b996009c2a644"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/service.py",
+      "bytes": 124,
+      "sha256": "3961513ad9e067f749d6bb4aa7bcb5d680219bb564baa06fcfa6b0d5a6516296"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/config.py",
+      "bytes": 6003,
+      "sha256": "af7cf2731c823ded5b160e1a7cc7f8ca33f3718db066eb4858a8838224fe13d0"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/models.py",
+      "bytes": 5196,
+      "sha256": "729453014166e35a16ce9434f2c44be4c24d94642c50aac9ff7a1605f8b4ec67"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/homenova.py",
+      "bytes": 10914,
+      "sha256": "02f86eb1d14a205d04b2ec86f90e77e918de8c3183c699b2f32853f47f1b89bd"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/model_client.py",
+      "bytes": 8512,
+      "sha256": "12d6945962c07e8ec4dc1f73145358d76e166e8d608d80e9ab737eabc09489fc"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/result_references.py",
+      "bytes": 2892,
+      "sha256": "b6acc0f53b790fdef3ffc55c91627344865bdbf986a57d1f60c7798ecd14297b"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/database.py",
+      "bytes": 8023,
+      "sha256": "62a655f91d5ba89b6e4874f71a8695b30cf9083747d772b2ddde2c47ca72b90b"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/__init__.py",
+      "bytes": 39,
+      "sha256": "355b723e052e3e6c211f4cd922a2cccafd16836360ce633afbafdbf32bdd90ad"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/runtime_budget.py",
+      "bytes": 3648,
+      "sha256": "0839d8f7e8a2fc82d48c23e756be9ce07c863947a46be8cca6038417097dda8e"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/demo_data.py",
+      "bytes": 5700,
+      "sha256": "3e110b438f44d1774670e633feef882e17eae2f8584d487f634018e4124af700"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/preprocessing.py",
+      "bytes": 8989,
+      "sha256": "19de1f0d2b61a5b4ded5968a9cdb874d692626894fed93fa721bd425fe7b398a"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/task_decisions.py",
+      "bytes": 8941,
+      "sha256": "8fe27a7ddda09b5783cfa59a1379e5886eaa5fff3f3ebb42d32a743e1dbcfbeb"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/errors.py",
+      "bytes": 348,
+      "sha256": "d65f257c58138b36a0f9d522b08d46b02c77151c36961bba2d5b8a6af81eab90"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/main.py",
+      "bytes": 1002,
+      "sha256": "debc99e8500583fbd7e51ee6558c7d12ecf1f621a360e8ff129d276f42087e61"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/mcp_runtime/server.py",
+      "bytes": 5229,
+      "sha256": "aaca64a36eda08613409015e4e3f7123ab5d0c3fa781eea4b9e97ad220ce29b9"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/mcp_runtime/client.py",
+      "bytes": 2988,
+      "sha256": "a0590b274945066c3ffdf541c8c9e9bef8fd469a9875985bb8de02da59f9f787"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/mcp_runtime/__init__.py",
+      "bytes": 136,
+      "sha256": "25afe0d37fd99611244cc7ff3e903cfa5c2dade31a15870e15269a609c6a7053"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/mcp_runtime/README.md",
+      "bytes": 833,
+      "sha256": "2c9a60fa27275d07a4db3cadfd0f39bdbbfe7cf46266674c09691b701cb3377e"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/mcp_runtime/schemas.py",
+      "bytes": 2542,
+      "sha256": "91911be7370297eccd0ccd05ef76efd524a1feafa8118df37951e88c43f931ec"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/mcp_runtime/tools/__init__.py",
+      "bytes": 324,
+      "sha256": "b465bdc3de9e8878a59a8bd244b2e42fa03594e886d90ac5a6b218bf3892535f"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/mcp_runtime/tools/time_tools.py",
+      "bytes": 2268,
+      "sha256": "59a95659eafcc50f4c9ef2b2d1f783a04617e29018251fce64fb3af55d500974"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/mcp_runtime/tools/database_tools.py",
+      "bytes": 1506,
+      "sha256": "194fa739080db782aa72e8877cea949151cc7304240d1239611443ff6f098f79"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/mcp_runtime/tools/presentation_tools.py",
+      "bytes": 1583,
+      "sha256": "1524ab3baaf0ecca5e8df1b03e5682f6dd8bdfff37e3f2b64b7cf88aa9f19653"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/security/auth.py",
+      "bytes": 1958,
+      "sha256": "1df4fa6eb2e3d73091855897ab0f6b06fdeaed7c440ed68a8c6be816afdcba54"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/security/__init__.py",
+      "bytes": 172,
+      "sha256": "f64ea4a1b53332090130642c17e6265aa4df9019634fc075448b25f3ba4e94a6"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/security/access_control.py",
+      "bytes": 4571,
+      "sha256": "3d5cbc77991aaf2543a994471d3a6f7c2d3087c61d417c19a75710ca6638214c"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/workflows/harness.py",
+      "bytes": 61785,
+      "sha256": "f3654cb1ddbcbb4fc3b4c0280cb282da88325bb99a77c8080d13c7306a3ddabc"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/workflows/query_graph.py",
+      "bytes": 31089,
+      "sha256": "fc9f1b0921412d7e2c74f3fe59c22e54ee693ca49a17442aaba8cc47a22e1748"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/workflows/__init__.py",
+      "bytes": 35,
+      "sha256": "3da3f98de22b4df4c01d7082562b1decac29704d80539cc9e7a8e4f9378ae397"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/workflows/result_builder.py",
+      "bytes": 9151,
+      "sha256": "3fe11172222d305b57be9536ce912b3f849065e6d8057af8db23146a0f0beb2b"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/workflows/state.py",
+      "bytes": 1233,
+      "sha256": "83c11e7d2907473db601939cae7579c4dd68b7664933bddcb3a592df4a0c0aab"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/retrieval/store.py",
+      "bytes": 6618,
+      "sha256": "04b67be05158e1acc77a4e64a3993765e415d3d2ccd419e06bb5662d81317cfe"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/retrieval/service.py",
+      "bytes": 20799,
+      "sha256": "88fe178fe11374beaa7b6daebab0555357456f6592759f7431c44861e43c8d96"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/retrieval/graph.py",
+      "bytes": 9830,
+      "sha256": "a13dec7967f87bdf43a2eb94f0c64a7da41c891bb82645cafe468d58df2c68f9"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/retrieval/__init__.py",
+      "bytes": 155,
+      "sha256": "2e8edf1db4bec5d89d43de8b7303907d34dfa54f672f829a80122309192a1d1f"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/retrieval/homenova_index.py",
+      "bytes": 2049,
+      "sha256": "69835aaee2b859ace8c593308a86e9b904851793c60262dc531a5cf5e0144086"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/api/__init__.py",
+      "bytes": 27,
+      "sha256": "e13d97d643b76827935fb88232e4012ce4161d82adffe01e040e48090b2887ea"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/api/routes.py",
+      "bytes": 8304,
+      "sha256": "cc2c7250d21e6cbbb43f1055601155956282e520700e8443cac1fc878d033e3f"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/skills/registry.py",
+      "bytes": 2403,
+      "sha256": "9d6740636b0ec9e6497711d87b51c3b826c9a8e52ecbc858f75b4c96c0166ba2"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/skills/__init__.py",
+      "bytes": 101,
+      "sha256": "680726c976c87e1e888df0697b232234722401e1d1b02636949f18afab163949"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/skills/data_qa/config.json",
+      "bytes": 238,
+      "sha256": "91a01090ba7e6bb026ebcaaaee8e5847a22db52075907924fee16658eb474f18"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/skills/data_qa/SKILL.md",
+      "bytes": 1605,
+      "sha256": "81a686661726fe044822035b372ef16759f8d88f39d1199a8c6da86295571192"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/skills/inventory_risk_check/config.json",
+      "bytes": 176,
+      "sha256": "49ed0aefb2b3db0b0738d2f46524d65bf57a400ba2681ba844142f88c4408f52"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/skills/inventory_risk_check/SKILL.md",
+      "bytes": 6741,
+      "sha256": "5d31d425653b6449f417db0d4c6eb0b12211fa409bbb10f5e4fee23127a0a84e"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/skills/database_query/config.json",
+      "bytes": 304,
+      "sha256": "f31353127fb41e141c85a12b3e2f4f0d365b5090e1811d8cbb2de62859759552"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/skills/database_query/SKILL.md",
+      "bytes": 5841,
+      "sha256": "db2c595be2855acbcd91c581d73548a9e0a769a4cea63578aae2ea62e30b5020"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/skills/business_diagnosis/config.json",
+      "bytes": 180,
+      "sha256": "e8f10c45dc32544936f49241630239c988c2930f5ae0989ab1b57b7846976711"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/skills/business_diagnosis/SKILL.md",
+      "bytes": 7682,
+      "sha256": "f6de0747b8a37291e122d383afb897bfe0836cc3828840e82ee69ff161456651"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/skills/goal_analysis/config.json",
+      "bytes": 166,
+      "sha256": "6f2f65b23c5e8100a24f958b72ef957b5586d85f18a202baf9faeaef50ad3d24"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/skills/goal_analysis/SKILL.md",
+      "bytes": 7186,
+      "sha256": "6efcf63dd12ba16d519b3d4d933854fd649bc38b79c33aebbb8eceaa691d3394"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/querying/metric_sources.py",
+      "bytes": 4279,
+      "sha256": "c57dc2c9c9a08a9e20814b09982aebc888e7df361ff611f2446eecc14c602be0"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/querying/models.py",
+      "bytes": 438,
+      "sha256": "291283fe74c68715521e9e7d772927f0d5831d35c84713e78a4a159b4e8b8759"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/querying/response_generator.py",
+      "bytes": 4125,
+      "sha256": "bd54e8d1473f49dbdfb985513526a7ba166371ff99d82e3ace0592e34975480a"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/querying/__init__.py",
+      "bytes": 59,
+      "sha256": "6dc948905075e824c2a2607ef66f9b842d53c013f2644bd78ed7551eac2c652c"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/querying/duckdb_engine.py",
+      "bytes": 15426,
+      "sha256": "2fee7edb80a8b18ac2f83d9dfcb63a96396b082058575c0eec43c651eac940d9"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/querying/single_database_agent.py",
+      "bytes": 23578,
+      "sha256": "b187f781ba7cf695773bf6bd93711b04c74571a9c4cb13877bd3595c36f05d24"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/querying/data_qa_agent.py",
+      "bytes": 7966,
+      "sha256": "714bcb05bf0900a6ac5ec9cde4c2d38b58fac05a131042c4f6eee77b31a17736"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/querying/query_contract.py",
+      "bytes": 51576,
+      "sha256": "1dc9cc2be0461fa82bb315767f9253285f153b61f117d5a286ce1b63fb3d4b2e"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/services/session_context.py",
+      "bytes": 14170,
+      "sha256": "d5f743781a110b78db8548867f80ae053486ee5429066bbc6a724a6bb8f9990b"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/services/session_archive.py",
+      "bytes": 7019,
+      "sha256": "008336024d456a019341dcebaefbc7527adbcd8aa9d351a49914225d07951b51"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/services/short_term_memory.py",
+      "bytes": 8460,
+      "sha256": "bfbc81597254e58f8303b81e53ebcd24a244fc4d6cd7053c1d5cabe8ad48299f"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/services/memory_store.py",
+      "bytes": 3553,
+      "sha256": "16feb9cb0dc30fd500c2a5fb105f91819befe9a749e5ea276f8d302f10e8e274"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/services/__init__.py",
+      "bytes": 31,
+      "sha256": "020f361755c5bedb3b0b82e4d1458b862c7b8f3d2073d0a87325f2772220de0c"
+    },
+    {
+      "path": "references/askdata_studio/backend/app/services/askdata_service.py",
+      "bytes": 17394,
+      "sha256": "1c071e5561e1c3ea32d5ddccb30074d1a7c7d7563529a6e4ec5da97c54821b4d"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_time_contract_v7.py",
+      "bytes": 11643,
+      "sha256": "0ba10de176b79122630821ea5e28e7ab303cec1e863f8d919323ca1b821fd477"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/connectivity_check.py",
+      "bytes": 843,
+      "sha256": "aa26348008a528a348b54108cc8ce58266b7bd0a597dbbc871ecdd609623de02"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_sql_guard_v5.py",
+      "bytes": 9569,
+      "sha256": "fea62d14d5aedeb422932f216e4e0a9537bbd41b26f72ceb76fa6ec228b2ab4e"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_closing_recovery.py",
+      "bytes": 9640,
+      "sha256": "b2758e0ebeb5291d703d9ed8ac9d6e665845815afdcbd83771a1d95367ea40e2"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_paid_run_cap.py",
+      "bytes": 2560,
+      "sha256": "0025d8108c3924eed2473dfd6f9273568e112ebbda1bbe701e9a010c5985f0f6"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_service.py",
+      "bytes": 50111,
+      "sha256": "18b18083a5bb32c6e46ad5c93c248cc20d7a87f44d23ddd506f79bcbd79d3048"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_harness.py",
+      "bytes": 31869,
+      "sha256": "9499895fb7575434b6e7bcc616f8e7fe1225d99d08bbfb08a774ac36b732e8a3"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_auth.py",
+      "bytes": 2874,
+      "sha256": "22e2d07e297e47c3f2e02fad002926dd8f4eaf534964898c57b205b03241d65d"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_mcp_runtime.py",
+      "bytes": 5436,
+      "sha256": "e56d7a07e210d2ca2159fb734f94618dfafc36b56a8b722d4606bd8ae478ecc7"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_latest_harness.py",
+      "bytes": 20048,
+      "sha256": "aadfb983020941ef635a26e33807614e1f945656fc763f557fc5d494557e22ee"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/__init__.py",
+      "bytes": 36,
+      "sha256": "0f5ae1e41ec78181d2eb334131703db483b8352bd3eb22d698ace10a62e3150c"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_result_reference_resolution.py",
+      "bytes": 16753,
+      "sha256": "f3bda0580c11dfabf1d26bee1f173c224d027d3c574039b193045ba19874054d"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_route_model_v8.py",
+      "bytes": 5580,
+      "sha256": "075d935c99b64b499125544a0cd2006eccfd24750d37d3904d56ebe5af38e84c"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_metric_source_validation_v6.py",
+      "bytes": 4755,
+      "sha256": "9d26f9bbac35270711d151de77181dcd5b1eefb308867516956b775570e6994e"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_preprocessing.py",
+      "bytes": 3819,
+      "sha256": "109bbd5e477b6df1e2789f7641bf3324222d3d69d48ad4ed64bca2d9937155fe"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_ecommerce_dataset.py",
+      "bytes": 8667,
+      "sha256": "9b539abd3a9c567abaf5634cc5b55f12bab61d2ad35748bd950c44c2284ed33a"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_model_client.py",
+      "bytes": 2167,
+      "sha256": "ce22a7bdb67e6863cbf9572afaea00c05c29a886c9a60699b8e7a9a1ad9a94b2"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_session_archive.py",
+      "bytes": 4418,
+      "sha256": "abb1e9dae9dbd3670886a6ad911dbe0c11afd08b36ae4dd7a4db490e6f7ff767"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_time_range_tool_v7.py",
+      "bytes": 5673,
+      "sha256": "2fdb759b7c9b14c372b2e7dad0bf203333a4e62aead9a0bc3a622ab7287bddb8"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_validation_context.py",
+      "bytes": 4992,
+      "sha256": "15e6ac9f62ed0b0d80de23dbfbe667f96c9e61c9c6e9fa4a05e650367ce794c0"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/manual_report_check.py",
+      "bytes": 2009,
+      "sha256": "b527dbbfd5d209bc92cd9c8a5b7613262ff8f83e0988383bbdfb241c2bf2efe0"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_contract_boundaries_v6.py",
+      "bytes": 10458,
+      "sha256": "581a2acc479a57c8136aa3762aba722174e2b5db2a10ce3ee94aaf8c3e12e391"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_skills.py",
+      "bytes": 1172,
+      "sha256": "5e702f81c47c1fb5db54fa8a24a95c8103e6e42572f5f085350b944be5f6dbbd"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_memory_store.py",
+      "bytes": 2237,
+      "sha256": "c4873b24c378335dd23ee23e91d1f54c9e9375b6d5f7c5d5ab4dc96e9b90c486"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_metric_source_clarification_v6.py",
+      "bytes": 11842,
+      "sha256": "0c4d0321aa6dbf73a22555838fbf2e417f1361fa73b925fad360bd610ad2a902"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_short_term_memory.py",
+      "bytes": 3131,
+      "sha256": "a24c911f7179d18e808b8edc0d726f2db6750cd47e23d69ac46fdf650387f7fe"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_clarification_intent_v8.py",
+      "bytes": 8759,
+      "sha256": "8216ab5f30d27e6ed6b3695dfc287e2ff701ea2ff57302ca946b992c8bdf010e"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/test_query_validation_v3.py",
+      "bytes": 18065,
+      "sha256": "821183d971b300261d6f54fee52f26cc5193f63c028c284df368beb1c91b6644"
+    },
+    {
+      "path": "references/askdata_studio/backend/tests/smoke_check.py",
+      "bytes": 865,
+      "sha256": "d5f3b39a7c15fe7227e7e3366d14f8ae0a48b8ce9d33391014b4ceea3297a6d4"
+    },
+    {
+      "path": "references/askdata_studio/backend/scripts/generate_ecommerce_schema.py",
+      "bytes": 31878,
+      "sha256": "bfa5d78d55da76d14431c53890313d9aa302e666fe08652083af90d851ba3bd6"
+    },
+    {
+      "path": "references/askdata_studio/backend/scripts/generate_ecommerce_data.py",
+      "bytes": 61195,
+      "sha256": "d467a5af7ec0c0e64f52ec01cdf951a9419bee3663aa0d9b7ac4aace3d5743b8"
+    },
+    {
+      "path": "references/askdata_studio/backend/scripts/validate_ecommerce_data.py",
+      "bytes": 3989,
+      "sha256": "60665511008068966478176bc244330a1ceed2a32359402028ff0e2a8f84a910"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/daily_product_metrics.csv",
+      "bytes": 1873792,
+      "sha256": "2424c401e53fc136ba2f69da1476141d6e86a644f054a75befb57ff00123e007"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/search_events.csv",
+      "bytes": 893978,
+      "sha256": "8a3b958e55c64a7ba6bf0aed1567807b47ecca9e4616b53220327769a36be718"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/coupon_usages.csv",
+      "bytes": 271760,
+      "sha256": "ccf3df63321bbfbcf1a8f9926a682f6f157f0d649f641424dc1b75c31e4ddbc7"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/products.csv",
+      "bytes": 147647,
+      "sha256": "98654b551d3bd79894c602b719fd143ffa0fb514ac43f43a40eba2581be8100d"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/orders.csv",
+      "bytes": 1345415,
+      "sha256": "7af3c3b076847bcd3b52b7e612a3c98de531dd2a1f2190b1dcc90f21929b8449"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/shopping_carts.csv",
+      "bytes": 333247,
+      "sha256": "7979a4752a3a726a9741e032ee9985f35c8d2e7ffe70a70e5e54529973a81d61"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/user_devices.csv",
+      "bytes": 441551,
+      "sha256": "4667e2432927aa9567130fa4a4eeeb4aacf0e89f10cb31adee7bcde3f5b390a7"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/acquisition_channels.csv",
+      "bytes": 495,
+      "sha256": "5148d9caebfadba352e93159938d685f37dbd8cb3b2630e05d91cd3afe31a295"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/shipments.csv",
+      "bytes": 1119353,
+      "sha256": "17c7e9dd40e67c6bf3d990d1c3cc705eda4e4dca807898f330b230c91b357eb6"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/sku_inventory.csv",
+      "bytes": 153994,
+      "sha256": "a4006c476b51cf95a063f34a8d2481330298c03520fd69024d076da9b746ec3d"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/sales_targets.csv",
+      "bytes": 45182,
+      "sha256": "10d8c9a388e4337571c85bc94ebdd65fc2b9787d449af22d48b618304ebd3fc9"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/ad_daily_stats.csv",
+      "bytes": 358974,
+      "sha256": "fd7f061bf04b90cc622dfb999572bf5750c8885da62f4e12b7ab638e13303878"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/recommendation_exposures.csv",
+      "bytes": 2056897,
+      "sha256": "c04244b754727b5f11d6dd479a126a2e94ab8169ba0526d3504029b3dce9cf78"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/favorite_products.csv",
+      "bytes": 465441,
+      "sha256": "9f44d7600f5ad695e4bd9680908a10fae5698156db6baf865b67ebbaea966431"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/review_replies.csv",
+      "bytes": 85616,
+      "sha256": "0b8be71b31710b92221249e0b326212131b7d8325689a8b368f53735575c465e"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/ad_campaigns.csv",
+      "bytes": 8759,
+      "sha256": "b3bee11cfb84292818562260c1ddd1aa0483635abc3bc7ade5d1d7bd12767680"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/purchase_orders.csv",
+      "bytes": 61896,
+      "sha256": "343d2f83786a8e5ad0793e9dd214217c82fbfa0519a31dedf56b7b8cb96b8222"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/users.csv",
+      "bytes": 489044,
+      "sha256": "f867e0652208cc31c06c26ed873b2d80afcebbd3ff78d9a9372368e70047e7aa"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/refunds.csv",
+      "bytes": 152542,
+      "sha256": "60ccd9fcfe49580d6b7533a09b94d09a9b6b212ded9e3fdc073ae175474af212"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/user_tag_relations.csv",
+      "bytes": 474810,
+      "sha256": "cbebaf6cd0cb2cc835e2fa81e1152dc532222cca1a5de59dc977fb8c17089f92"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/user_addresses.csv",
+      "bytes": 741893,
+      "sha256": "63fbb0ea4ab16d1a7272101c2a554b454b956dd594d6da59889cfc9a522e7097"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/inventory_movements.csv",
+      "bytes": 813239,
+      "sha256": "077110048744a1e1c80391564bc8770329e5398748898e2cf407fba67a0d8b61"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/user_profiles.csv",
+      "bytes": 472203,
+      "sha256": "825e7fda3f8217814082c250cb54861d4929849295374ecb9c162d9673cbdd8a"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/suppliers.csv",
+      "bytes": 11638,
+      "sha256": "d7915a52a79c5a839b92ba6ac1b89ea1ea5dbc23078aa1c99fb290495ec9910f"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/ticket_messages.csv",
+      "bytes": 479641,
+      "sha256": "a9bd3c1c20850f94d2a14cddd8789e5350612e4291220741f29b63cbe38abece"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/payments.csv",
+      "bytes": 1085473,
+      "sha256": "f04857d3cae7a4a8ed9fa5a854abfd5606944405deb5526b759cc7a6f813417d"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/_schema.json",
+      "bytes": 932285,
+      "sha256": "0a5f180dd7e3e8e36a72eb95abf01b5e0fee27f8bc21205fc6767949c18ab457"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/product_categories.csv",
+      "bytes": 1204,
+      "sha256": "a9ee774fb15ac9be031991bbb5d7f5f46c9f384010f911b4ab816788090aace5"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/store_staff.csv",
+      "bytes": 32603,
+      "sha256": "b98ca1a5613abf6417babbfcd9334d8839193de7d9411f10c13cc9d3a2559448"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/member_point_transactions.csv",
+      "bytes": 820971,
+      "sha256": "98e9f7b14fe835f3f0cdb89190ab22aac3820ce550d8f817a8fca1b2bd442362"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/purchase_order_items.csv",
+      "bytes": 168380,
+      "sha256": "792f0555965f28f49f4440b355829c27f5ac31f8e73fff16e395f792b758a7b7"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/page_views.csv",
+      "bytes": 4198358,
+      "sha256": "d137ea79275e74a8745123a2bc19b4b369665cf4bbd17725bb578d2245d107c0"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/refund_items.csv",
+      "bytes": 143243,
+      "sha256": "27315b79960ade271908b9dc5fa23989486c4fb27d8d0a51f3d4ba72fa28aa05"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/shipment_tracks.csv",
+      "bytes": 2433239,
+      "sha256": "45f857f50ea0265381a8230f3eb5820368e5fde80fbeb25a5c4d50221e5aae99"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/product_prices.csv",
+      "bytes": 334342,
+      "sha256": "e48bab13ad36b3ecb99d7625b6f5ff1ed086973afaad25af062c08335b6671fc"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/campaign_products.csv",
+      "bytes": 61026,
+      "sha256": "dd8b6a015e4a29fae09262e085d2dcf55d82c596025c1ff1c9eaf3ecadbb6323"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/coupons.csv",
+      "bytes": 15274,
+      "sha256": "e0ae19084f9b960435032bf531e614ac6f5a376a9e855609a8a9ca878cfcfcb5"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/user_sessions.csv",
+      "bytes": 1733070,
+      "sha256": "69557f7339dd9ea1fa026d1bafba3866a237051aaf6274ffdfe677f807f7fab2"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/service_tickets.csv",
+      "bytes": 211647,
+      "sha256": "aab0070a2b1d71b8109f4130c2527c23b709cbdc6802908c3c38ce7de1127f50"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/warehouses.csv",
+      "bytes": 1007,
+      "sha256": "810af39f8764ece2cfdcc9947041e60a513a01d0a7947062eace108817eddcfa"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/user_memberships.csv",
+      "bytes": 269883,
+      "sha256": "637753c5e1108f2e4336ce75b7411721b6817f1536d2045602db275e8657b8bc"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/order_items.csv",
+      "bytes": 1493765,
+      "sha256": "2cc315a7626dd9ae050ffcbb701beb12def1fdb82203fab6df42b6b4c96dedbe"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/user_tags.csv",
+      "bytes": 542,
+      "sha256": "791cfb6cd61418df4938af8a5f32bf0eb32776baacb0a0f83fc257df4a606e97"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/marketing_campaigns.csv",
+      "bytes": 10841,
+      "sha256": "51787d33775a17f1174a08f7dc1910f249e404cf52146b6b86a95d81dd80e32c"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/brands.csv",
+      "bytes": 3944,
+      "sha256": "08a44f83bfc7e3a3d0a3666033e507befad6adc7037cd0ce40357fc3c712e95c"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/product_skus.csv",
+      "bytes": 302293,
+      "sha256": "53da171467cc3417de076ea6627c78c4fb5294ee608135bc1b3f0d47a707eacd"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/product_reviews.csv",
+      "bytes": 615066,
+      "sha256": "803f4bbe7a177d02cbc1c7b1c5c99d3958e2320d00c9cd43f803bdc20acd2ea2"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/coupon_receipts.csv",
+      "bytes": 510381,
+      "sha256": "6f391de2d0a2a53e9beac457f49ae375aa611bab3d9d889ba75d7e3bf8bc127c"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/cart_items.csv",
+      "bytes": 798938,
+      "sha256": "ae3566c497833b411792a1fc454c7b4ce9b79325ed0c36ecda4b6ed81bbbb727"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/_database_manifest.json",
+      "bytes": 15857,
+      "sha256": "00e0db8dd42444ab8457a936323e8c77201d499ed85d0fbc9a09690c0e380fa6"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/stores.csv",
+      "bytes": 6387,
+      "sha256": "eb0e6cbac95a48d0c5d2c0283443ab6a53781d583bd1efdfc62e244e8c6029a8"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/ecommerce_ops/daily_store_metrics.csv",
+      "bytes": 1412319,
+      "sha256": "28ae6477257a3e9768170b0ba9dc414d33377c448a779ba2c4dcd4f97c1fc1da"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/askdata_mock/customers.csv",
+      "bytes": 1192,
+      "sha256": "6aca5f425dfb6a7d1313091912242d1b6d90eada4a7d53457b8ca11a00323a37"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/askdata_mock/products.csv",
+      "bytes": 475,
+      "sha256": "7b1b19aea42257ce48b83b58598e9043fda0fc0129f65d0d5edadef8ed321af4"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/askdata_mock/sales_targets.csv",
+      "bytes": 323,
+      "sha256": "b68eb556fc58a0b17ee2095f8e2b4aa293ae4b84834dc10f055c24b175a3086d"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/askdata_mock/orders_current.csv",
+      "bytes": 17682,
+      "sha256": "59454fa149ecaef21e348c7550566fb9ae2b3c824355455a650dc26db6ad2d52"
+    },
+    {
+      "path": "references/askdata_studio/backend/data/databases/askdata_mock/orders_history.csv",
+      "bytes": 35348,
+      "sha256": "3958154a376b70350ade9194b87d6b2e3a66519511fb4f9086e6b3e0e197e920"
+    },
+    {
+      "path": "scripts/homenova_harness_v1/run_baseline.py",
+      "bytes": 2861,
+      "sha256": "b5e7f5342bc1e0332f67e55aacb2320095a511b3b96b44c08c59961ddb801dd8"
+    },
+    {
+      "path": "scripts/homenova_harness_v1/register_skills.py",
+      "bytes": 1039,
+      "sha256": "0bc0d8e43d54abe02da2c32e5ee4d643292b04af01221899d35cf22a8c7e7cf7"
+    },
+    {
+      "path": "scripts/homenova_harness_v1/run_acceptance.py",
+      "bytes": 2305,
+      "sha256": "4fa6d96d89fe93f764ee18e0b7e0b6b09dedfb76b525417184f79ec7a3294cc0"
+    },
+    {
+      "path": "scripts/homenova_harness_v1/audit_review_controller.py",
+      "bytes": 9279,
+      "sha256": "99fa3af3ab3ef3a2c37f01f8438ab4b9baefeb85919d260c470295ebbfa20674"
+    },
+    {
+      "path": "scripts/homenova_harness_v1/replay_contract_validation_v6.py",
+      "bytes": 6929,
+      "sha256": "75ad39ccdad2b587acf2775d3f0c145347da8fdf462dbc94fd2e4ecc48d01269"
+    },
+    {
+      "path": "scripts/homenova_harness_v1/probe_profit_sql_v5.py",
+      "bytes": 13678,
+      "sha256": "1346a490d3cdd0781942fcaaf083b3761f6415a64fa5d4fe541e114cb1f2e080"
+    },
+    {
+      "path": "scripts/homenova_harness_v1/build_process_reports.py",
+      "bytes": 34931,
+      "sha256": "97c18d543808f7868ee4d11b5e6e3bc30d152cd0b1cc99552a0ac45737174a8c"
+    },
+    {
+      "path": "scripts/homenova_harness_v1/run_validation_v3_acceptance.py",
+      "bytes": 808,
+      "sha256": "c6769be66c6a6e8c1a9c8d59aca14923d17b0149a0ab4082b5d39ce88051e942"
+    },
+    {
+      "path": "scripts/homenova_harness_v1/build_latest_reports.py",
+      "bytes": 5736,
+      "sha256": "2ed7251426ca8ad52289859ea57b1036f0eee98709ab9b7a3ea731e32dd1ae99"
+    },
+    {
+      "path": "scripts/homenova_harness_v1/replay_reference_controller_v4.py",
+      "bytes": 10231,
+      "sha256": "5f6ed62cbfb7fb0d893321448b0705d54f63b6b1ae0b10bb74a386eb1219a60a"
+    },
+    {
+      "path": "scripts/homenova_harness_v1/reference_controller_v4_acceptance.md",
+      "bytes": 2085,
+      "sha256": "157363f64e81780b8ec49150ffb4791fdfe7b75080113848a9c997ef21790470"
+    },
+    {
+      "path": "scripts/homenova_harness_v1/run_case.py",
+      "bytes": 1587,
+      "sha256": "98000c4c1d97db4896d3b74e75c0d97aedaa7304a21c052a8d87f10ec68a4d85"
+    },
+    {
+      "path": "scripts/homenova_harness_v1/README.md",
+      "bytes": 5223,
+      "sha256": "48d61c86496a2d6e1dfc20cb316a3a200dac9e28a15184869804545374f5f2a9"
+    },
+    {
+      "path": "scripts/homenova_harness_v1/probe_runtime.py",
+      "bytes": 7507,
+      "sha256": "1f54a4dc953cb0e603430024eef3e65ecf7186b2a33c8fce163ac41f804c2ca4"
+    },
+    {
+      "path": "scripts/homenova_harness_v1/launch_desktop.py",
+      "bytes": 4084,
+      "sha256": "92ef9b71c86d112d8a142d9ab4343a1b27b7224dbc2194e803e51f1251dcbc17"
+    },
+    {
+      "path": "scripts/homenova_harness_v1/offline_review.py",
+      "bytes": 5406,
+      "sha256": "8e043bc209854e6d666af4020748ac937e7e00977342a52379c451e70f31b1e4"
+    },
+    {
+      "path": "scripts/homenova_harness_v1/build_validation_v3_reports.py",
+      "bytes": 312,
+      "sha256": "00fb7dec809e926e657b69f12015b7379eac21f49552003dd8558304cbf02029"
+    },
+    {
+      "path": "scripts/homenova_harness_v1/run_budgeted_acceptance.py",
+      "bytes": 4391,
+      "sha256": "5452fd7bf56a767ed5e5d59577224cc6fbd8b46b0d78cdf81b2450588c3f567f"
+    },
+    {
+      "path": "scripts/homenova_harness_v1/replay_query_validation_v3.py",
+      "bytes": 16454,
+      "sha256": "ecac3cabc979462cbf06fbb4aade36fa573dce3026299447aff1205e0f0fbccf"
+    },
+    {
+      "path": "scripts/homenova_harness_v1/probe_sql_variants_v5.py",
+      "bytes": 15394,
+      "sha256": "07f71536b5e02bfdad219555a823046e50c8824a9e41408821ebb31bd7167c7f"
+    },
+    {
+      "path": "scripts/homenova_harness_v1/acceptance.md",
+      "bytes": 10439,
+      "sha256": "09101b8ca34ea9e6d795f7a6bb5112c3c7674713508535e89ac0cfb377ccd76c"
+    },
+    {
+      "path": "scripts/homenova_harness_v1/independent_check.py",
+      "bytes": 2806,
+      "sha256": "fdd5b2f381562e4a754bd74cf61e34deb6151fe1d89c9cf9678e671e144db7bc"
+    },
+    {
+      "path": "scripts/homenova_harness_v1/query_validation_v3_acceptance.md",
+      "bytes": 2017,
+      "sha256": "dff7a1a4c2ab2e3b8714895420cde5f8cb87d3d2a46e8f08152a8dff80d17bec"
+    },
+    {
+      "path": "scripts/homenova_phase_e/run_smoke.py",
+      "bytes": 1802,
+      "sha256": "395f11d407ae2ccccb6c446c6269fbbd494c2ebaf9909d4d6527359940010e43"
+    },
+    {
+      "path": "scripts/homenova_phase_e/run_agent_tests.py",
+      "bytes": 12505,
+      "sha256": "589645abf7cb37080587b105968b24dc27775dec5a0544343addda635ac16caa"
+    },
+    {
+      "path": "scripts/homenova_phase_e/build_semantics.py",
+      "bytes": 53982,
+      "sha256": "f8c582d12fb1a79e5782311c4b484e9d482d6eb3cba2bc1c6ec1f31791dfd600"
+    },
+    {
+      "path": "scripts/homenova_phase_e/build_report.py",
+      "bytes": 16145,
+      "sha256": "81a096f2062a1c39f4b100f51d1749f326bb9f0b1609619606ed9c26dd1112d9"
+    },
+    {
+      "path": "scripts/homenova_phase_e/start.py",
+      "bytes": 5581,
+      "sha256": "2026131b9fd8a0a1d27ad91ce0c94c725dda4dd40befce7ff3e7ea302e652727"
+    },
+    {
+      "path": "scripts/homenova_phase_e/README.md",
+      "bytes": 3977,
+      "sha256": "2cc13027f6e1d018811960a9045055262eb37749dc3befe68b429c06b237da0f"
+    },
+    {
+      "path": "scripts/homenova_phase_e/test_evaluation.py",
+      "bytes": 6286,
+      "sha256": "4097ea394c68878436cdb8ae7182b33ef83d8c7b7294e1d194f0560366466272"
+    },
+    {
+      "path": "scripts/homenova_phase_e/test_adapter_rules.py",
+      "bytes": 3272,
+      "sha256": "bb33ae8f5e070a86199da5f91ce1163590e4793141cfa69c7fad521842ba25ed"
+    },
+    {
+      "path": "scripts/homenova_phase_e/probe_runtime.py",
+      "bytes": 7504,
+      "sha256": "5d690b2aed2e04c90a4bb81692c9c1c79fbfa1f2f37cf3a8c21509f79cdd615a"
+    },
+    {
+      "path": "scripts/homenova_phase_e/evaluate.py",
+      "bytes": 16281,
+      "sha256": "cae32f10c098ab890d297c7187507d14d8b276d96127794350cc5c5adec6b0ee"
+    },
+    {
+      "path": "scripts/homenova_phase_e/preserve.py",
+      "bytes": 2365,
+      "sha256": "9ac3c55eb5806995abe03d597c2d62e69eea80070cf6fdec738b16eac9829d64"
+    },
+    {
+      "path": "scripts/homenova_phase_e/build_indices.py",
+      "bytes": 2755,
+      "sha256": "602dd7664f4113e2a7b7393ec99189028c48f88ccb644160a06b2e59e3c6aa56"
+    },
+    {
+      "path": "docs/agent_skills/README.md",
+      "bytes": 4094,
+      "sha256": "21fec63f9d109aa6438efa3337a6a33656793a1388f83435452f2fc179de403e"
+    },
+    {
+      "path": "docs/agent_skills/inventory_risk_check/SKILL.md",
+      "bytes": 6741,
+      "sha256": "5d31d425653b6449f417db0d4c6eb0b12211fa409bbb10f5e4fee23127a0a84e"
+    },
+    {
+      "path": "docs/agent_skills/business_diagnosis/SKILL.md",
+      "bytes": 7703,
+      "sha256": "1d8d92f43d196cdc477c05d2c0d4f01f2355a2e8a3c28c6e65fc980aa5f69fe0"
+    },
+    {
+      "path": "docs/agent_skills/goal_analysis/SKILL.md",
+      "bytes": 7187,
+      "sha256": "b9fc30a3638d3a0ad2d2ee96fe29bcd48a7455c50a67045aa89ac23785b867a6"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_10_15/data_dictionary.md",
+      "bytes": 46845,
+      "sha256": "c50fa614ee2226cb3f811089e2eec04096e6faa13fadcb0a02811d561d90ec70"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_10_15/price_intervals.csv",
+      "bytes": 1589,
+      "sha256": "e53fc4f495aefb6c9fe14ab8a690c1daafb79aa6d2e61821d7bded533899e021"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_10_15/ad_daily.csv",
+      "bytes": 186909,
+      "sha256": "2e238a9b35043aa2a4fedc29cd8e7a17431e66ac2844a09e09f59833cbb301ad"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_10_15/orders.csv",
+      "bytes": 796521,
+      "sha256": "3638cebeffd93482a408f2a8a9dea53ebf672fb993839665d1af30f59742126f"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_10_15/shipments.csv",
+      "bytes": 793575,
+      "sha256": "d37a0cd0185aae78eb066f71e61cc4a1bed7e0b27b749e8427497813a089c925"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_10_15/dataset_metadata.json",
+      "bytes": 3146,
+      "sha256": "d4c95605d214b98d4c2e7b46db50bf3edba3c9cd8850454250e5c934adce4d96"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_10_15/refunds.csv",
+      "bytes": 218878,
+      "sha256": "070ae9b7fb1b48b0be001aa782d04345c3f60c4c7bd66467700e902d419d10e6"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_10_15/inventory_movements.csv",
+      "bytes": 1356377,
+      "sha256": "2914ad9f6296a0643b8b3fe482d569d7ccff844a8dbe57176f99e34ca87af74d"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_10_15/visit_events.csv",
+      "bytes": 29478342,
+      "sha256": "5129d3b193826cfa0adc05652f5d9809c46a86091fd7e25a974a42768bafeba4"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_10_15/procurements.csv",
+      "bytes": 12058,
+      "sha256": "db639d0d8d1635850536bbe271be4b0ae71a85e5e31bc1a7aaba54882338007d"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_10_15/payments.csv",
+      "bytes": 848572,
+      "sha256": "b623f70e949f8de084b878074152fc57eeda32a507b63375dd3a6340d8d41002"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_10_15/competitor_prices.csv",
+      "bytes": 155410,
+      "sha256": "0cfefe285cc552cb77ee07dac3dab0f4f4c456b0220eeb2d315dfbce73976de3"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_10_15/customer_feedback.csv",
+      "bytes": 440232,
+      "sha256": "86e80dd3a47fac2dd3e5cd0ba63b527c20171a39827b1c4d655d1b5045f86893"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_10_15/sku_catalog.csv",
+      "bytes": 1045,
+      "sha256": "f9805956c9acb54be5eff16823199d4426024bd534ab7db9f0a9d1d8cd1c5850"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_10_15/order_items.csv",
+      "bytes": 634806,
+      "sha256": "75f3578fa2cf0a0f478c62c9773203b5fa3bb32e2aad413412aac732c6d692ac"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_10_15/campaigns.csv",
+      "bytes": 4573,
+      "sha256": "8cf95a73b0b87a19e188c1674f0c0ba8d36c0b1b5b7f66c3df3631d1bb0cf771"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_10_15/sessions.csv",
+      "bytes": 19392325,
+      "sha256": "68b1a212052210d63658927e4ba66baa7e47526b0c638bc0db4dc9129c685bd8"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_08_31/data_dictionary.md",
+      "bytes": 46845,
+      "sha256": "188a22016fecffcba0295e48576828980cf6004eca3df3c06914665638c8774b"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_08_31/price_intervals.csv",
+      "bytes": 1589,
+      "sha256": "e53fc4f495aefb6c9fe14ab8a690c1daafb79aa6d2e61821d7bded533899e021"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_08_31/ad_daily.csv",
+      "bytes": 185896,
+      "sha256": "84845f139fcbe568ba497e022176723db38efefa283d0b416cd6f92171cff975"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_08_31/orders.csv",
+      "bytes": 796101,
+      "sha256": "b644d1ae92410164d8eb3c52dea3ce349bd4e820f29760f8fcf1258caa02b3ca"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_08_31/shipments.csv",
+      "bytes": 781796,
+      "sha256": "ffc6787b43fe39bf7ac66d121fa0514e3bad7432278fddda47f8446a7fa784aa"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_08_31/dataset_metadata.json",
+      "bytes": 3146,
+      "sha256": "1df8642655ef54279e5949b9d9948dbd6af38adbefe36623a972d43a6213e5a8"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_08_31/refunds.csv",
+      "bytes": 201428,
+      "sha256": "e824a5116e75022e2cfb79a3683fa48cd966b20c5648019d362b61aa7586de29"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_08_31/inventory_movements.csv",
+      "bytes": 1345471,
+      "sha256": "f355faa1256872121c7e0afd8aeade0c2035642c744bb1016085f158a7d1bd59"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_08_31/visit_events.csv",
+      "bytes": 29478342,
+      "sha256": "5129d3b193826cfa0adc05652f5d9809c46a86091fd7e25a974a42768bafeba4"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_08_31/procurements.csv",
+      "bytes": 11562,
+      "sha256": "7b5e721e407c1b210f62b87f81a2be285174348edf3e91deae51916c445214bb"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_08_31/payments.csv",
+      "bytes": 848572,
+      "sha256": "b623f70e949f8de084b878074152fc57eeda32a507b63375dd3a6340d8d41002"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_08_31/competitor_prices.csv",
+      "bytes": 155410,
+      "sha256": "0cfefe285cc552cb77ee07dac3dab0f4f4c456b0220eeb2d315dfbce73976de3"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_08_31/customer_feedback.csv",
+      "bytes": 415697,
+      "sha256": "c66b7a589ce1e51a94140e9b00e9f0a17322f5cec2d40a4f840c8d6330770f9e"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_08_31/sku_catalog.csv",
+      "bytes": 1045,
+      "sha256": "f9805956c9acb54be5eff16823199d4426024bd534ab7db9f0a9d1d8cd1c5850"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_08_31/order_items.csv",
+      "bytes": 634806,
+      "sha256": "75f3578fa2cf0a0f478c62c9773203b5fa3bb32e2aad413412aac732c6d692ac"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_08_31/campaigns.csv",
+      "bytes": 4333,
+      "sha256": "6337c6031e7656781fa7e5d70a65b15bc08955e5f11724903b8dda84eadad785"
+    },
+    {
+      "path": "data/homenova_phase_d/public/asof_2026_08_31/sessions.csv",
+      "bytes": 19392305,
+      "sha256": "f0c654d32816ea7e062052d502cdc3453245180f5f404a434005f52963296b0f"
+    },
+    {
+      "path": "data/homenova_phase_e/public_semantics/asof_2026_10_15/datasource.json",
+      "bytes": 271,
+      "sha256": "b2a635484f1f58b22231364a10de9726ffc4e60efa7c85880b1ba24131a4b8da"
+    },
+    {
+      "path": "data/homenova_phase_e/public_semantics/asof_2026_10_15/metrics.json",
+      "bytes": 329632,
+      "sha256": "79d117be465388e5c684704c0e5071a3b82d2d871924908c400bcbf6d1b09e8e"
+    },
+    {
+      "path": "data/homenova_phase_e/public_semantics/asof_2026_10_15/capabilities.json",
+      "bytes": 2690,
+      "sha256": "81fe06cb71fa6a4c5c63eb04990b4b27166bf8bdd399e00ab49e59d3a5b75388"
+    },
+    {
+      "path": "data/homenova_phase_e/public_semantics/asof_2026_10_15/field_documents.json",
+      "bytes": 267163,
+      "sha256": "4a73b106b5e874b95a904a2cf77dfb4dafb757d12ed1c2a1720bb295cedf56aa"
+    },
+    {
+      "path": "data/homenova_phase_e/public_semantics/asof_2026_10_15/dataset_metadata.json",
+      "bytes": 3146,
+      "sha256": "d4c95605d214b98d4c2e7b46db50bf3edba3c9cd8850454250e5c934adce4d96"
+    },
+    {
+      "path": "data/homenova_phase_e/public_semantics/asof_2026_10_15/glossary.json",
+      "bytes": 3928,
+      "sha256": "99d346f48cf61811c95719faa80b3866a5e71e2f52ee95ee078207b689b6d3b9"
+    },
+    {
+      "path": "data/homenova_phase_e/public_semantics/asof_2026_10_15/manifest.json",
+      "bytes": 2914,
+      "sha256": "37774c32311cde1a21a89f69e320832e304070fe896b67cc476ae6edd4cacdef"
+    },
+    {
+      "path": "data/homenova_phase_e/public_semantics/asof_2026_10_15/schema.json",
+      "bytes": 165873,
+      "sha256": "693ad37270640217d294aff60cfeb681d14859e1c344a53d14aaa1b9b336ad2b"
+    },
+    {
+      "path": "data/homenova_phase_e/public_semantics/asof_2026_08_31/datasource.json",
+      "bytes": 271,
+      "sha256": "971d9f76606311fc738d3c2cec015e8f21ab171ee1507587b0a4cf2647b6fbb5"
+    },
+    {
+      "path": "data/homenova_phase_e/public_semantics/asof_2026_08_31/metrics.json",
+      "bytes": 329632,
+      "sha256": "8eccc74ec32aaab984c76eee7cebeaf49de28feea2b5c959369210fb092e6860"
+    },
+    {
+      "path": "data/homenova_phase_e/public_semantics/asof_2026_08_31/capabilities.json",
+      "bytes": 2690,
+      "sha256": "937b6d57e257f6b5debb51df4c47796e863f172287ee7e98795136f67dc4687a"
+    },
+    {
+      "path": "data/homenova_phase_e/public_semantics/asof_2026_08_31/field_documents.json",
+      "bytes": 267163,
+      "sha256": "7dbb6ccbe16b1120211f662819bebf9b8efa100f7e054173b035c9ab6ba2cd49"
+    },
+    {
+      "path": "data/homenova_phase_e/public_semantics/asof_2026_08_31/dataset_metadata.json",
+      "bytes": 3146,
+      "sha256": "1df8642655ef54279e5949b9d9948dbd6af38adbefe36623a972d43a6213e5a8"
+    },
+    {
+      "path": "data/homenova_phase_e/public_semantics/asof_2026_08_31/glossary.json",
+      "bytes": 3928,
+      "sha256": "fcf57fb155e71e7471c4bedca84c672a8aabb592b3e00e538ea15165c01c5eeb"
+    },
+    {
+      "path": "data/homenova_phase_e/public_semantics/asof_2026_08_31/manifest.json",
+      "bytes": 2914,
+      "sha256": "0bf01ba27a87ef7bcf2b1c8c4cf09d54942feaaf7e3e816846515a533a17daa2"
+    },
+    {
+      "path": "data/homenova_phase_e/public_semantics/asof_2026_08_31/schema.json",
+      "bytes": 165873,
+      "sha256": "e3169c47fcd2e0cdd1c8971fd9eb15a0b66f8f7f14c944a64b02146ecd49fa41"
+    },
+    {
+      "path": "docs/homenova_contract_validation_v6_report.md",
+      "bytes": 4237,
+      "sha256": "2c98e45990e6f970de8177dab1c04a1f548d86f4169e1c8c8851e071ced2ffa8"
+    },
+    {
+      "path": "docs/homenova_harness_v1_consumption_audit.md",
+      "bytes": 4882,
+      "sha256": "02bb6ba9ef363d117db66e3e9ffbfc1544aabece1531946a94b1dc09ddd7458a"
+    },
+    {
+      "path": "docs/homenova_harness_v1_gmv_process_comparison.md",
+      "bytes": 17461,
+      "sha256": "36e6bb940ae66bdbcd33f636d9ec528dc304195033a27578d36d193ff99fb754"
+    },
+    {
+      "path": "docs/homenova_harness_v1_gmv_process_report_20261028.md",
+      "bytes": 13526,
+      "sha256": "d791e295a51a4f11948c4a4387c3a092e91afbe9155c26e459ad86ea4150573b"
+    },
+    {
+      "path": "docs/homenova_harness_v1_implementation_checkpoint.md",
+      "bytes": 13722,
+      "sha256": "c083fcad45dac95ce44250362db82c47f3ed24124ae8876b4bd7165ddcf64733"
+    },
+    {
+      "path": "docs/homenova_harness_v1_implementation_v2_report.md",
+      "bytes": 9652,
+      "sha256": "60aa547e725ee9e2b459a4bc7cd938f67edfc4564597e733691372a49473d422"
+    },
+    {
+      "path": "docs/homenova_harness_v1_process_report.md",
+      "bytes": 52865,
+      "sha256": "aa011c5a5f4aaf8ba1e24537603211a00716d8f97a8cd3fbe5434ca9acab8588"
+    },
+    {
+      "path": "docs/homenova_harness_v1_report.md",
+      "bytes": 12082,
+      "sha256": "0880a99a1bce3f89ff06283647b657de9b8420165780a2886fa5017114e5f37d"
+    },
+    {
+      "path": "docs/homenova_harness_v1_review_controller_fix_plan.md",
+      "bytes": 27319,
+      "sha256": "37c5ed77d8a891e821fed1fc3b2230e5995e996e64574935e72904a7fc243083"
+    },
+    {
+      "path": "docs/homenova_phase_a_report.md",
+      "bytes": 9608,
+      "sha256": "55d3a510ac7879e88a4e78bd3903989a0c08bcef9676fef75189bc8d6a7edd28"
+    },
+    {
+      "path": "docs/homenova_phase_b_report.md",
+      "bytes": 12999,
+      "sha256": "ddb468292406234091edcdc258dc9b689b895c10ff87eaf8ba1a26d03ca8b1d1"
+    },
+    {
+      "path": "docs/homenova_phase_c_report.md",
+      "bytes": 12399,
+      "sha256": "9e3860a90ab83689922a60babd473664ee0b7ac5814977e6710fce6a93eadef7"
+    },
+    {
+      "path": "docs/homenova_phase_d_report.md",
+      "bytes": 8627,
+      "sha256": "f57820cddd8e1cf6b4ad1833909ba88a762196722342f745cabe55213e1dad53"
+    },
+    {
+      "path": "docs/homenova_phase_e_report.md",
+      "bytes": 10399,
+      "sha256": "a055e9a63bb8afc4ee89b26f7bdd5a816271c0b82a47f0677adf697f9e0779ce"
+    },
+    {
+      "path": "docs/homenova_query_validation_v3_report.md",
+      "bytes": 6628,
+      "sha256": "fc5159c249c84558c4d0ece0096a3c0e0f8f64c2581f790349eb5fad42b5b2c9"
+    },
+    {
+      "path": "docs/homenova_reference_controller_v4_report.md",
+      "bytes": 7059,
+      "sha256": "828318be3ab56c3e9665e4e1e8807d0dda661285d290e3eb20bc4718aa486fce"
+    },
+    {
+      "path": "docs/homenova_routing_v8_report.md",
+      "bytes": 4323,
+      "sha256": "231c8b61e1edb7809cc7001a09b65ff35fb46349357f28f566ac2c9f01938448"
+    },
+    {
+      "path": "docs/homenova_sql_probe_v5_report.md",
+      "bytes": 7030,
+      "sha256": "e6c838d2e21f2236adb1ebbf43f25e04adfb57153dce1774058fc29f130e36f2"
+    },
+    {
+      "path": "docs/homenova_time_contract_v7_report.md",
+      "bytes": 4960,
+      "sha256": "6aac7b3c738d5c608b0717376a199f679bee4828e5e162789e56ace44de3b59f"
+    },
+    {
+      "path": "docs/homenova_validation_v3_real_report.md",
+      "bytes": 7030,
+      "sha256": "d4ef89c8b446f0a59352aee22b4ccd212d8735f315239a3d1dcdb0bbd6b4dea1"
+    },
+    {
+      "path": "docs/ecommerce_agent_design_decisions.md",
+      "bytes": 44482,
+      "sha256": "82362a3aa7b5b3c24e16ece843507e41b7515eb256ec36fc5b7aa8c084014d2b"
+    },
+    {
+      "path": "docs/ecommerce_ops_data_map.md",
+      "bytes": 33483,
+      "sha256": "be966329573150f991ed185bc4046fff30f5a6cb64081b2ac9786b29180d011c"
+    },
+    {
+      "path": "docs/data_dictionary.md",
+      "bytes": 3864,
+      "sha256": "1931a704c55128d0e0ab3d170d7414d9eb1304c165ba3f95e064c51807597b56"
+    },
+    {
+      "path": "docs/metric_definitions.md",
+      "bytes": 2093,
+      "sha256": "867a4a25708a71c4caa958750aa25e5cb88fd2a60ca797325a4c908185b3e47c"
+    },
+    {
+      "path": "docs/askdata_studio_regression_2026-10-25.md",
+      "bytes": 12905,
+      "sha256": "1d544fd955591dcb3dec7ad6bc149954656a3167d32b533cb86d14d25a964f80"
+    },
+    {
+      "path": "docs/askdata_foundation_audit.md",
+      "bytes": 29770,
+      "sha256": "970ceea4ad4f9642f2d8f9fa606bce37edf41802e7e2c164a3145eca5427da2f"
+    },
+    {
+      "path": "docs/architecture_walkthrough.md",
+      "bytes": 2242,
+      "sha256": "f61eca309d03e7ef8914078e10f62423c2cdbff84f80f5ae092a57dad0816e1b"
+    }
+  ]
+}

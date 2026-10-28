@@ -1,0 +1,8 @@
+{
+  "id": "homenova_20260831",
+  "database": "homenova_20260831",
+  "snapshot_id": "asof_2026_08_31",
+  "relative_data_path": "data/homenova_phase_d/public/asof_2026_08_31",
+  "scenario_clock_local_date": "2026-08-31",
+  "observation_cutoff_at": "2026-08-31T22:00:00Z"
+}

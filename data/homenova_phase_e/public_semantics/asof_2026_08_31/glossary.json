@@ -1,0 +1,111 @@
+{
+  "database": "homenova_20260831",
+  "snapshot_id": "asof_2026_08_31",
+  "terms": [
+    {
+      "term": "销售额/收入",
+      "candidate_metrics": [
+        "paid_goods_gmv_gross",
+        "shipped_goods_revenue_ex_vat",
+        "net_sales_ex_vat"
+      ],
+      "clarification": "需区分支付GMV、发货收入与扣退净销售；注明含税、运费、退款和时间归属，不能互作同义词。",
+      "requires_disclosure": true
+    },
+    {
+      "term": "利润",
+      "candidate_metrics": [
+        "goods_profit_ex_vat",
+        "direct_operating_contribution_ex_vat"
+      ],
+      "clarification": "先区分商品毛利与扣直接费用的贡献；缺固定费用不能声称企业净利润。",
+      "requires_disclosure": true
+    },
+    {
+      "term": "订单量",
+      "candidate_metrics": [
+        "paid_order_count"
+      ],
+      "clarification": "已创建订单、成功支付、发货与取消是不同集合；默认成功支付必须声明，不能按明细行数计订单。",
+      "requires_disclosure": true
+    },
+    {
+      "term": "转化率",
+      "candidate_metrics": [
+        "checkout_session_cvr",
+        "sku_view_session_cvr",
+        "ad_landing_rate"
+      ],
+      "clarification": "确定会话购买、商品浏览到购买还是点击落地；分子分母必须同一cohort，广告归因窗不同于会话支付窗。",
+      "requires_disclosure": true
+    },
+    {
+      "term": "ROAS",
+      "candidate_metrics": [
+        "goods_roas_ex_vat",
+        "refund_adjusted_roas"
+      ],
+      "clarification": "默认不含税商品退款前成交/不含税媒体费，按点击cohort；含税或退款后口径须另命名并注明as_of。",
+      "requires_disclosure": true
+    },
+    {
+      "term": "退款",
+      "candidate_metrics": [
+        "completed_cash_refunds_gross",
+        "shipped_goods_refunds_ex_vat",
+        "resalable_cost_recovery_ex_vat"
+      ],
+      "clarification": "申请、批准、资金完成、退回和验收不同；现金退回不等于商品收入冲减或成本恢复。",
+      "requires_disclosure": true
+    },
+    {
+      "term": "净/net",
+      "candidate_metrics": [
+        "net_sales_ex_vat"
+      ],
+      "clarification": "ex_vat表示不含税，net_sales表示扣指定退款后的净销售，二者不能混为一个含义。",
+      "requires_disclosure": true
+    },
+    {
+      "term": "库存",
+      "candidate_metrics": [
+        "on_hand_inventory",
+        "reserved_inventory",
+        "available_inventory"
+      ],
+      "clarification": "区分实物在库、订单预占与可售；在途采购不是可售，余额不可跨日相加。",
+      "requires_disclosure": true
+    },
+    {
+      "term": "缺货损失",
+      "candidate_metrics": [
+        "stockout_duration"
+      ],
+      "clarification": "可核验时长、不可售访问及结账阻断；这些不是精确反事实失单或损失毛利。",
+      "requires_disclosure": true
+    },
+    {
+      "term": "投诉",
+      "candidate_metrics": [
+        "customer_contact_root_count",
+        "customer_contact_order_rate"
+      ],
+      "clarification": "complaint_opened包含一般客户咨询；根、回复、解决、评价不同类型，不能把全部行计作严重投诉。",
+      "requires_disclosure": true
+    },
+    {
+      "term": "客户/用户",
+      "candidate_metrics": [
+        "sessions_count"
+      ],
+      "clarification": "visitor_id是伪匿名可观察标识，会话是访问单位；不能声称真实自然人全生命周期或竞品成交去向。",
+      "requires_disclosure": true
+    },
+    {
+      "term": "本月/最近/今天",
+      "candidate_metrics": [],
+      "clarification": "按当前绑定快照的as_of_local_date解释场景时间，不使用机器今天；缺少范围时声明默认，不能访问另一快照补未来。",
+      "requires_disclosure": true
+    }
+  ]
+}

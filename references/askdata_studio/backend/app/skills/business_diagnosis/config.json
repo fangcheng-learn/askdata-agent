@@ -1,0 +1,7 @@
+{
+  "name": "business_diagnosis",
+  "description": "经营变化核实、贡献分析与解释证据审查",
+  "allowed_tools": [],
+  "max_tool_calls": 0,
+  "output_actions": []
+}

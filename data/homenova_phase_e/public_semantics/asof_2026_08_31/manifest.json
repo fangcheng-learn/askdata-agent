@@ -1,0 +1,49 @@
+{
+  "format_version": "homenova-semantic-manifest-v1",
+  "database": "homenova_20260831",
+  "snapshot_id": "asof_2026_08_31",
+  "sources": {
+    "dictionary_sha256": "188a22016fecffcba0295e48576828980cf6004eca3df3c06914665638c8774b",
+    "metadata_sha256": "1df8642655ef54279e5949b9d9948dbd6af38adbefe36623a972d43a6213e5a8",
+    "csv_sha256": {
+      "sku_catalog.csv": "f9805956c9acb54be5eff16823199d4426024bd534ab7db9f0a9d1d8cd1c5850",
+      "price_intervals.csv": "e53fc4f495aefb6c9fe14ab8a690c1daafb79aa6d2e61821d7bded533899e021",
+      "sessions.csv": "f0c654d32816ea7e062052d502cdc3453245180f5f404a434005f52963296b0f",
+      "orders.csv": "b644d1ae92410164d8eb3c52dea3ce349bd4e820f29760f8fcf1258caa02b3ca",
+      "order_items.csv": "75f3578fa2cf0a0f478c62c9773203b5fa3bb32e2aad413412aac732c6d692ac",
+      "payments.csv": "b623f70e949f8de084b878074152fc57eeda32a507b63375dd3a6340d8d41002",
+      "procurements.csv": "7b5e721e407c1b210f62b87f81a2be285174348edf3e91deae51916c445214bb",
+      "inventory_movements.csv": "f355faa1256872121c7e0afd8aeade0c2035642c744bb1016085f158a7d1bd59",
+      "shipments.csv": "ffc6787b43fe39bf7ac66d121fa0514e3bad7432278fddda47f8446a7fa784aa",
+      "refunds.csv": "e824a5116e75022e2cfb79a3683fa48cd966b20c5648019d362b61aa7586de29",
+      "campaigns.csv": "6337c6031e7656781fa7e5d70a65b15bc08955e5f11724903b8dda84eadad785",
+      "ad_daily.csv": "84845f139fcbe568ba497e022176723db38efefa283d0b416cd6f92171cff975",
+      "visit_events.csv": "5129d3b193826cfa0adc05652f5d9809c46a86091fd7e25a974a42768bafeba4",
+      "competitor_prices.csv": "0cfefe285cc552cb77ee07dac3dab0f4f4c456b0220eeb2d315dfbce73976de3",
+      "customer_feedback.csv": "c66b7a589ce1e51a94140e9b00e9f0a17322f5cec2d40a4f840c8d6330770f9e"
+    },
+    "interpreted_inputs": "public dictionary, current metadata and CSV headers only"
+  },
+  "table_count": 15,
+  "field_count": 207,
+  "relation_count": 27,
+  "metric_count": 40,
+  "field_documents_are_embeddings": false,
+  "asset_sha256": {
+    "schema.json": "e3169c47fcd2e0cdd1c8971fd9eb15a0b66f8f7f14c944a64b02146ecd49fa41",
+    "field_documents.json": "7dbb6ccbe16b1120211f662819bebf9b8efa100f7e054173b035c9ab6ba2cd49",
+    "metrics.json": "8eccc74ec32aaab984c76eee7cebeaf49de28feea2b5c959369210fb092e6860",
+    "glossary.json": "fcf57fb155e71e7471c4bedca84c672a8aabb592b3e00e538ea15165c01c5eeb",
+    "capabilities.json": "937b6d57e257f6b5debb51df4c47796e863f172287ee7e98795136f67dc4687a",
+    "dataset_metadata.json": "1df8642655ef54279e5949b9d9948dbd6af38adbefe36623a972d43a6213e5a8",
+    "datasource.json": "971d9f76606311fc738d3c2cec015e8f21ab171ee1507587b0a4cf2647b6fbb5"
+  },
+  "self_checks": {
+    "all_207_fields_documented": true,
+    "all_metric_fields_exist": true,
+    "all_dependency_fields_exist": true,
+    "all_joins_reference_real_columns": true,
+    "no_observed_value_profiles_or_results": true,
+    "snapshot_binding_isolated": true
+  }
+}

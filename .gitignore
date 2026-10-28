@@ -1,0 +1,43 @@
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+*.pem
+*.key
+
+# Dependencies, build output, and editor caches
+.venv/
+venv/
+node_modules/
+dist/
+__pycache__/
+*.py[cod]
+*.tsbuildinfo
+.cache/
+.pytest_cache/
+.mypy_cache/
+.DS_Store
+.idea/
+.vscode/
+
+# Runtime state, private evaluation material, and databases
+**/private/
+.run/
+*.log
+*.pid
+*.db
+*.db-*
+*.sqlite*
+*.duckdb*
+references/askdata_studio/backend/data/*
+!references/askdata_studio/backend/data/databases/
+/data/*
+!/data/homenova_phase_d/
+!/data/homenova_phase_e/
+/data/homenova_phase_d/*
+!/data/homenova_phase_d/public/
+/data/homenova_phase_e/*
+!/data/homenova_phase_e/public_semantics/

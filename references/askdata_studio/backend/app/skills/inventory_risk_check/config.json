@@ -1,0 +1,7 @@
+{
+  "name": "inventory_risk_check",
+  "description": "库存事实与有参数的条件式风险分析",
+  "allowed_tools": [],
+  "max_tool_calls": 0,
+  "output_actions": []
+}

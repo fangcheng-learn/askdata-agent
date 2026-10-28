@@ -1,0 +1,4510 @@
+{
+  "format_version": "homenova-public-semantics-v1",
+  "database": "homenova_20261015",
+  "snapshot_id": "asof_2026_10_15",
+  "table_count": 15,
+  "field_count": 207,
+  "tables": [
+    {
+      "id": "hn10_sku_catalog",
+      "name": "sku_catalog",
+      "label": "商品主档",
+      "database": "homenova_20261015",
+      "domain": "商品",
+      "description": "单店、单仓；商品类目代码为 `POWER`（智能用电）、`LIGHT`（智能照明）、`SECURITY`（家庭安防）。标准到仓成本固定，不含税且已包含分摊入库费用，不再次作为经营费用扣除。",
+      "business_terms": [
+        "商品主档",
+        "商品"
+      ],
+      "grain": "一个可销售 SKU",
+      "primary_key": [
+        "sku_id"
+      ],
+      "unique_keys": [],
+      "dependency_fields": [
+        "sku_id",
+        "category_code",
+        "pack_units",
+        "currency",
+        "standard_cost_ex_vat_cents",
+        "vat_rate_bps",
+        "active_from",
+        "active_to",
+        "recorded_at"
+      ],
+      "fields": [
+        {
+          "name": "sku_id",
+          "label": "SKU 标识",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；SKU 标识",
+          "aliases": [
+            "sku id",
+            "SKU 标识"
+          ],
+          "role": "identifier",
+          "aggregation": "none",
+          "unit": "PK",
+          "nullable": false,
+          "null_semantics": "非空；SKU 标识",
+          "source_type_text": "TEXT，PK"
+        },
+        {
+          "name": "sku_name",
+          "label": "商品名称",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；商品名称",
+          "aliases": [
+            "sku name",
+            "商品名称"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；商品名称",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "category_code",
+          "label": "商品类目代码",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；上述三个类目之一",
+          "aliases": [
+            "category code",
+            "商品类目代码"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；上述三个类目之一",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "pack_units",
+          "label": "包装内物理件数",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空正整数；不改变按套计量的库存单位",
+          "aliases": [
+            "pack units",
+            "包装内物理件数"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "包装内物理件数",
+          "nullable": false,
+          "null_semantics": "非空正整数；不改变按套计量的库存单位",
+          "source_type_text": "INTEGER，包装内物理件数"
+        },
+        {
+          "name": "store_id",
+          "label": "经营店铺标识",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；经营店铺标识",
+          "aliases": [
+            "store id",
+            "经营店铺标识"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；经营店铺标识",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "currency",
+          "label": "交易币种",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；EUR",
+          "aliases": [
+            "currency",
+            "交易币种"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；EUR",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "standard_cost_ex_vat_cents",
+          "label": "固定标准到仓单位成本",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；固定标准到仓单位成本",
+          "aliases": [
+            "standard cost ex vat cents",
+            "固定标准到仓单位成本"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_ex_vat",
+          "nullable": false,
+          "null_semantics": "非空；固定标准到仓单位成本",
+          "source_type_text": "INTEGER，不含税欧分/销售单位"
+        },
+        {
+          "name": "vat_rate_bps",
+          "label": "增值税率基点",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；1900 表示 19%",
+          "aliases": [
+            "vat rate bps",
+            "增值税率基点"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "基点",
+          "nullable": false,
+          "null_semantics": "非空；1900 表示 19%",
+          "source_type_text": "INTEGER，基点"
+        },
+        {
+          "name": "active_from",
+          "label": "商品可用起点",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；商品可用起点",
+          "aliases": [
+            "active from",
+            "商品可用起点"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；商品可用起点",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "active_to",
+          "label": "空表示尚未登记结束，不代表库存无限或未来永久可售",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；空表示尚未登记结束，不代表库存无限或未来永久可售",
+          "aliases": [
+            "active to",
+            "空表示尚未登记结束，不代表库存无限或未来永久可售"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；空表示尚未登记结束，不代表库存无限或未来永久可售",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "recorded_at",
+          "label": "首次记录时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；主档首次可知时间",
+          "aliases": [
+            "recorded at",
+            "首次记录时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；主档首次可知时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        }
+      ],
+      "duplicate_risks": [
+        "先按事实粒度和各自时间聚合，再与其他事实表连接；状态和金额必须遵循指标定义。"
+      ]
+    },
+    {
+      "id": "hn10_price_intervals",
+      "name": "price_intervals",
+      "label": "商品有效价格",
+      "database": "homenova_20261015",
+      "domain": "商品",
+      "description": "同一 SKU 在可下单时刻应恰好命中一个价格区间；区间为 `[valid_from, valid_to)`，空结束时间表示开放。价格在下单时锁定，后续价格变化不重写旧订单。",
+      "business_terms": [
+        "商品有效价格",
+        "商品"
+      ],
+      "grain": "一个 SKU 的一个有效价格区间",
+      "primary_key": [
+        "price_interval_id"
+      ],
+      "unique_keys": [],
+      "dependency_fields": [
+        "price_interval_id",
+        "sku_id",
+        "valid_from",
+        "valid_to",
+        "published_at",
+        "recorded_at"
+      ],
+      "fields": [
+        {
+          "name": "price_interval_id",
+          "label": "价格区间标识",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；价格区间标识",
+          "aliases": [
+            "price interval id",
+            "价格区间标识"
+          ],
+          "role": "identifier",
+          "aggregation": "none",
+          "unit": "PK",
+          "nullable": false,
+          "null_semantics": "非空；价格区间标识",
+          "source_type_text": "TEXT，PK"
+        },
+        {
+          "name": "sku_id",
+          "label": "指向商品主档",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；指向商品主档",
+          "aliases": [
+            "sku id",
+            "指向商品主档"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "FK",
+          "nullable": false,
+          "null_semantics": "非空；指向商品主档",
+          "source_type_text": "TEXT，FK"
+        },
+        {
+          "name": "valid_from",
+          "label": "价格生效时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；价格生效时间",
+          "aliases": [
+            "valid from",
+            "价格生效时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；价格生效时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "valid_to",
+          "label": "区间结束，空表示当前开放",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；区间结束，空表示当前开放",
+          "aliases": [
+            "valid to",
+            "区间结束，空表示当前开放"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；区间结束，空表示当前开放",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "list_unit_gross_cents",
+          "label": "正常单位标价",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空正整数；正常单位标价",
+          "aliases": [
+            "list unit gross cents",
+            "正常单位标价"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_gross",
+          "nullable": false,
+          "null_semantics": "非空正整数；正常单位标价",
+          "source_type_text": "INTEGER，含税欧分/销售单位"
+        },
+        {
+          "name": "sale_unit_gross_cents",
+          "label": "最终成交单位价，不大于正常标价",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空正整数；最终成交单位价，不大于正常标价",
+          "aliases": [
+            "sale unit gross cents",
+            "最终成交单位价，不大于正常标价"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_gross",
+          "nullable": false,
+          "null_semantics": "非空正整数；最终成交单位价，不大于正常标价",
+          "source_type_text": "INTEGER，含税欧分/销售单位"
+        },
+        {
+          "name": "promotion_code",
+          "label": "促销标识",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "可空；空表示没有登记促销标识",
+          "aliases": [
+            "promotion code",
+            "促销标识"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": true,
+          "null_semantics": "可空；空表示没有登记促销标识",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "published_at",
+          "label": "面向顾客公布时间，不晚于生效时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；面向顾客公布时间，不晚于生效时间",
+          "aliases": [
+            "published at",
+            "面向顾客公布时间，不晚于生效时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；面向顾客公布时间，不晚于生效时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "recorded_at",
+          "label": "首次记录时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；价格记录首次可知时间",
+          "aliases": [
+            "recorded at",
+            "首次记录时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；价格记录首次可知时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        }
+      ],
+      "duplicate_risks": [
+        "先按事实粒度和各自时间聚合，再与其他事实表连接；状态和金额必须遵循指标定义。"
+      ]
+    },
+    {
+      "id": "hn10_sessions",
+      "name": "sessions",
+      "label": "访问会话",
+      "database": "homenova_20261015",
+      "domain": "访问",
+      "description": "会话是访问单位，不是用户、浏览事件或订单。访客使用伪匿名标识；只有 `identity_linkable=true` 的会话才支持相应跨会话关联。内部流量不纳入默认访问和会话转化指标。",
+      "business_terms": [
+        "访问会话",
+        "访问"
+      ],
+      "grain": "一次成功落地访问会话",
+      "primary_key": [
+        "session_id"
+      ],
+      "unique_keys": [],
+      "dependency_fields": [
+        "session_id",
+        "visitor_id",
+        "identity_linkable",
+        "started_at",
+        "ended_at",
+        "source_channel",
+        "source_click_event_id",
+        "landing_sku_id",
+        "is_internal_traffic",
+        "recorded_at"
+      ],
+      "fields": [
+        {
+          "name": "session_id",
+          "label": "成功落地会话标识",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；成功落地会话标识",
+          "aliases": [
+            "session id",
+            "成功落地会话标识"
+          ],
+          "role": "identifier",
+          "aggregation": "none",
+          "unit": "PK",
+          "nullable": false,
+          "null_semantics": "非空；成功落地会话标识",
+          "source_type_text": "TEXT，PK"
+        },
+        {
+          "name": "visitor_id",
+          "label": "访客伪匿名标识",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；伪匿名访客标识，不等于真实自然人身份",
+          "aliases": [
+            "visitor id",
+            "访客伪匿名标识"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；伪匿名访客标识，不等于真实自然人身份",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "identity_linkable",
+          "label": "访客标识可连接",
+          "type": "布尔",
+          "sql_type": "BOOLEAN",
+          "description": "非空；当前观测是否支持使用访客键跨会话连接",
+          "aliases": [
+            "identity linkable",
+            "访客标识可连接"
+          ],
+          "role": "filter",
+          "aggregation": "none",
+          "unit": "BOOLEAN",
+          "nullable": false,
+          "null_semantics": "非空；当前观测是否支持使用访客键跨会话连接",
+          "source_type_text": "BOOLEAN"
+        },
+        {
+          "name": "started_at",
+          "label": "会话开始时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；会话开始时间",
+          "aliases": [
+            "started at",
+            "会话开始时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；会话开始时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "ended_at",
+          "label": "空表示截至截点尚未观察到会话结束",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；空表示截至截点尚未观察到会话结束",
+          "aliases": [
+            "ended at",
+            "空表示截至截点尚未观察到会话结束"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；空表示截至截点尚未观察到会话结束",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "source_channel",
+          "label": "会话来源渠道",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；organic_search、direct，以及 paid_search_brand、paid_search_generic、paid_social；表示本次会话来源，不等于整笔订单最终广告归因",
+          "aliases": [
+            "source channel",
+            "会话来源渠道"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；organic_search、direct，以及 paid_search_brand、paid_search_generic、paid_social；表示本次会话来源，不等于整笔订单最终广告归因",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "source_click_event_id",
+          "label": "来源广告点击事件",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "付费落地会话必填，指向 visit_events 的 ad_click；自然/直接会话为空；点击未成功落地也可没有会话",
+          "aliases": [
+            "source click event id",
+            "来源广告点击事件"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "可空 FK",
+          "nullable": true,
+          "null_semantics": "付费落地会话必填，指向 visit_events 的 ad_click；自然/直接会话为空；点击未成功落地也可没有会话",
+          "source_type_text": "TEXT，可空 FK"
+        },
+        {
+          "name": "landing_sku_id",
+          "label": "落地商品SKU",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "可空；指向落地商品；空表示非商品落地页或未记录商品",
+          "aliases": [
+            "landing sku id",
+            "落地商品SKU"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "可空 FK",
+          "nullable": true,
+          "null_semantics": "可空；指向落地商品；空表示非商品落地页或未记录商品",
+          "source_type_text": "TEXT，可空 FK"
+        },
+        {
+          "name": "device_type",
+          "label": "访问设备类型",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；mobile、desktop 或 tablet",
+          "aliases": [
+            "device type",
+            "访问设备类型"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；mobile、desktop 或 tablet",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "destination_postal_prefix",
+          "label": "收货邮区前两位",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "可空；空表示该次访问没有可知目的邮区，不填造顾客地址",
+          "aliases": [
+            "destination postal prefix",
+            "收货邮区前两位"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "邮区前两位",
+          "nullable": true,
+          "null_semantics": "可空；空表示该次访问没有可知目的邮区，不填造顾客地址",
+          "source_type_text": "TEXT，邮区前两位"
+        },
+        {
+          "name": "is_internal_traffic",
+          "label": "是否内部访问",
+          "type": "布尔",
+          "sql_type": "BOOLEAN",
+          "description": "非空；是否内部访问；默认经营访问排除 true",
+          "aliases": [
+            "is internal traffic",
+            "是否内部访问"
+          ],
+          "role": "filter",
+          "aggregation": "none",
+          "unit": "BOOLEAN",
+          "nullable": false,
+          "null_semantics": "非空；是否内部访问；默认经营访问排除 true",
+          "source_type_text": "BOOLEAN"
+        },
+        {
+          "name": "recorded_at",
+          "label": "首次记录时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；会话首次可知时间",
+          "aliases": [
+            "recorded at",
+            "首次记录时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；会话首次可知时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        }
+      ],
+      "duplicate_risks": [
+        "先按事实粒度和各自时间聚合，再与其他事实表连接；状态和金额必须遵循指标定义。"
+      ]
+    },
+    {
+      "id": "hn10_orders",
+      "name": "orders",
+      "label": "订单头",
+      "database": "homenova_20261015",
+      "domain": "交易",
+      "description": "一笔订单必须先完成全部商品的原子库存预占。订单最多成功收款一次、全量发货一次。默认支付有效期为下单后 30 分钟；未成功支付到期释放预占。`status_as_of` 取值为 `pending_payment`（待支付）、`paid`（已付未发货）、`expired`（支付过期）、`cancelled`（已取消）、`shipped`（已发货未送达）、`delivered`（已送达）。售后不删除原支付和发货事实，也不靠订单终态代替退款计算。",
+      "business_terms": [
+        "订单头",
+        "交易"
+      ],
+      "grain": "一笔完成库存预占、成功创建的订单",
+      "primary_key": [
+        "order_id"
+      ],
+      "unique_keys": [
+        [
+          "checkout_session_id"
+        ]
+      ],
+      "dependency_fields": [
+        "order_id",
+        "visitor_id",
+        "checkout_session_id",
+        "ordered_at",
+        "expires_at",
+        "canceled_at",
+        "cancel_recorded_at",
+        "status_as_of",
+        "attributed_click_event_id",
+        "attributed_campaign_id",
+        "attribution_recorded_at",
+        "recorded_at"
+      ],
+      "fields": [
+        {
+          "name": "order_id",
+          "label": "订单标识",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；订单标识",
+          "aliases": [
+            "order id",
+            "订单标识"
+          ],
+          "role": "identifier",
+          "aggregation": "none",
+          "unit": "PK",
+          "nullable": false,
+          "null_semantics": "非空；订单标识",
+          "source_type_text": "TEXT，PK"
+        },
+        {
+          "name": "visitor_id",
+          "label": "访客伪匿名标识",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；与创建该订单的会话访客一致",
+          "aliases": [
+            "visitor id",
+            "访客伪匿名标识"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；与创建该订单的会话访客一致",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "checkout_session_id",
+          "label": "指向形成该订单的结账会话",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；指向形成该订单的结账会话",
+          "aliases": [
+            "checkout session id",
+            "指向形成该订单的结账会话"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "唯一 FK",
+          "nullable": false,
+          "null_semantics": "非空；指向形成该订单的结账会话",
+          "source_type_text": "TEXT，唯一 FK"
+        },
+        {
+          "name": "ordered_at",
+          "label": "成功创建订单时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；成功创建订单时间",
+          "aliases": [
+            "ordered at",
+            "成功创建订单时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；成功创建订单时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "expires_at",
+          "label": "未支付订单失效时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；未支付订单失效时间",
+          "aliases": [
+            "expires at",
+            "未支付订单失效时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；未支付订单失效时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "canceled_at",
+          "label": "仅主动取消时填写，状态为 cancelled",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；仅主动取消时填写，状态为 cancelled；支付超时 expired 不填写，以 expires_at 表示失效时点",
+          "aliases": [
+            "canceled at",
+            "仅主动取消时填写，状态为 cancelled"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；仅主动取消时填写，状态为 cancelled；支付超时 expired 不填写，以 expires_at 表示失效时点",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "cancel_recorded_at",
+          "label": "主动取消首次可知时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；主动取消首次可知时间；没有主动取消或仅支付超时失效时为空",
+          "aliases": [
+            "cancel recorded at",
+            "主动取消首次可知时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；主动取消首次可知时间；没有主动取消或仅支付超时失效时为空",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "status_as_of",
+          "label": "观察截点业务状态",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；上述截点订单状态之一 允许值：pending_payment, paid, expired, cancelled, shipped, delivered。",
+          "aliases": [
+            "status as of",
+            "观察截点业务状态"
+          ],
+          "role": "filter",
+          "aggregation": "none",
+          "unit": "状态枚举",
+          "nullable": false,
+          "null_semantics": "非空；上述截点订单状态之一",
+          "source_type_text": "TEXT，状态枚举",
+          "enum_values": [
+            "pending_payment",
+            "paid",
+            "expired",
+            "cancelled",
+            "shipped",
+            "delivered"
+          ]
+        },
+        {
+          "name": "item_list_gross_cents",
+          "label": "商品行正常标价总金额",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；商品行正常标价总金额",
+          "aliases": [
+            "item list gross cents",
+            "商品行正常标价总金额"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_gross",
+          "nullable": false,
+          "null_semantics": "非空；商品行正常标价总金额",
+          "source_type_text": "INTEGER，含税欧分"
+        },
+        {
+          "name": "item_discount_gross_cents",
+          "label": "商品优惠总额，没有优惠为 0",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；商品优惠总额，没有优惠为 0",
+          "aliases": [
+            "item discount gross cents",
+            "商品优惠总额，没有优惠为 0"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_gross",
+          "nullable": false,
+          "null_semantics": "非空；商品优惠总额，没有优惠为 0",
+          "source_type_text": "INTEGER，含税欧分"
+        },
+        {
+          "name": "item_paid_gross_cents",
+          "label": "商品折后金额",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；商品折后金额；这是锁定金额，不代表该订单已收款",
+          "aliases": [
+            "item paid gross cents",
+            "商品折后金额"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_gross",
+          "nullable": false,
+          "null_semantics": "非空；商品折后金额；这是锁定金额，不代表该订单已收款",
+          "source_type_text": "INTEGER，含税欧分"
+        },
+        {
+          "name": "shipping_gross_cents",
+          "label": "向顾客收取的运费，免运为 0",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；向顾客收取的运费，免运为 0",
+          "aliases": [
+            "shipping gross cents",
+            "向顾客收取的运费，免运为 0"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_gross",
+          "nullable": false,
+          "null_semantics": "非空；向顾客收取的运费，免运为 0",
+          "source_type_text": "INTEGER，含税欧分"
+        },
+        {
+          "name": "shipping_vat_cents",
+          "label": "顾客运费税额",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；顾客运费税额",
+          "aliases": [
+            "shipping vat cents",
+            "顾客运费税额"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_vat",
+          "nullable": false,
+          "null_semantics": "非空；顾客运费税额",
+          "source_type_text": "INTEGER，欧分"
+        },
+        {
+          "name": "shipping_ex_vat_cents",
+          "label": "顾客运费不含税金额",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；顾客运费不含税金额",
+          "aliases": [
+            "shipping ex vat cents",
+            "顾客运费不含税金额"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_ex_vat",
+          "nullable": false,
+          "null_semantics": "非空；顾客运费不含税金额",
+          "source_type_text": "INTEGER，不含税欧分"
+        },
+        {
+          "name": "payable_gross_cents",
+          "label": "商品折后金额加顾客运费",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；商品折后金额加顾客运费",
+          "aliases": [
+            "payable gross cents",
+            "商品折后金额加顾客运费"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_gross",
+          "nullable": false,
+          "null_semantics": "非空；商品折后金额加顾客运费",
+          "source_type_text": "INTEGER，含税欧分"
+        },
+        {
+          "name": "currency",
+          "label": "交易币种",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；EUR",
+          "aliases": [
+            "currency",
+            "交易币种"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；EUR",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "destination_postal_prefix",
+          "label": "收货邮区前两位",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；订单履约目的邮区，不是完整地址",
+          "aliases": [
+            "destination postal prefix",
+            "收货邮区前两位"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "邮区前两位",
+          "nullable": false,
+          "null_semantics": "非空；订单履约目的邮区，不是完整地址",
+          "source_type_text": "TEXT，邮区前两位"
+        },
+        {
+          "name": "attributed_click_event_id",
+          "label": "成功支付时确定的最后合格付费点击，指向 visit_events",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "成功支付时确定的最后合格付费点击，指向 visit_events；未支付或无有效归因时为空",
+          "aliases": [
+            "attributed click event id",
+            "成功支付时确定的最后合格付费点击，指向 visit_events"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "可空 FK",
+          "nullable": true,
+          "null_semantics": "成功支付时确定的最后合格付费点击，指向 visit_events；未支付或无有效归因时为空",
+          "source_type_text": "TEXT，可空 FK"
+        },
+        {
+          "name": "attributed_campaign_id",
+          "label": "指向 campaigns，须等于归因点击的 campaign_i",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "指向 campaigns，须等于归因点击的 campaign_id；无有效归因时为空",
+          "aliases": [
+            "attributed campaign id",
+            "指向 campaigns，须等于归因点击的 campaign_i"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "可空 FK",
+          "nullable": true,
+          "null_semantics": "指向 campaigns，须等于归因点击的 campaign_id；无有效归因时为空",
+          "source_type_text": "TEXT，可空 FK"
+        },
+        {
+          "name": "attribution_recorded_at",
+          "label": "归因首次可知时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；归因首次可知时间；未成功支付或无归因时为空",
+          "aliases": [
+            "attribution recorded at",
+            "归因首次可知时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；归因首次可知时间；未成功支付或无归因时为空",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "recorded_at",
+          "label": "首次记录时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；订单首次可知时间",
+          "aliases": [
+            "recorded at",
+            "首次记录时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；订单首次可知时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        }
+      ],
+      "duplicate_risks": [
+        "先按事实粒度和各自时间聚合，再与其他事实表连接；状态和金额必须遵循指标定义。"
+      ]
+    },
+    {
+      "id": "hn10_order_items",
+      "name": "order_items",
+      "label": "订单商品明细",
+      "database": "homenova_20261015",
+      "domain": "交易",
+      "description": "每个订单同一 SKU 合并成一行；数量可大于一。原价减折扣等于最终商品金额；成本列是锁定快照，只有发生发货才确认销售成本。",
+      "business_terms": [
+        "订单商品明细",
+        "交易"
+      ],
+      "grain": "一个订单中的一个 SKU 商品行",
+      "primary_key": [
+        "order_item_id"
+      ],
+      "unique_keys": [
+        [
+          "order_id",
+          "sku_id"
+        ]
+      ],
+      "dependency_fields": [
+        "order_item_id",
+        "order_id",
+        "sku_id",
+        "price_interval_id",
+        "quantity",
+        "recorded_at"
+      ],
+      "fields": [
+        {
+          "name": "order_item_id",
+          "label": "订单商品行标识",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；订单商品行标识",
+          "aliases": [
+            "order item id",
+            "订单商品行标识"
+          ],
+          "role": "identifier",
+          "aggregation": "none",
+          "unit": "PK",
+          "nullable": false,
+          "null_semantics": "非空；订单商品行标识",
+          "source_type_text": "TEXT，PK"
+        },
+        {
+          "name": "order_id",
+          "label": "指向订单",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；指向订单",
+          "aliases": [
+            "order id",
+            "指向订单"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "FK",
+          "nullable": false,
+          "null_semantics": "非空；指向订单",
+          "source_type_text": "TEXT，FK"
+        },
+        {
+          "name": "sku_id",
+          "label": "指向商品",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；指向商品",
+          "aliases": [
+            "sku id",
+            "指向商品"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "FK",
+          "nullable": false,
+          "null_semantics": "非空；指向商品",
+          "source_type_text": "TEXT，FK"
+        },
+        {
+          "name": "price_interval_id",
+          "label": "指向下单时生效的价格区间",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；指向下单时生效的价格区间",
+          "aliases": [
+            "price interval id",
+            "指向下单时生效的价格区间"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "FK",
+          "nullable": false,
+          "null_semantics": "非空；指向下单时生效的价格区间",
+          "source_type_text": "TEXT，FK"
+        },
+        {
+          "name": "quantity",
+          "label": "购买数量",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空正整数；购买数量",
+          "aliases": [
+            "quantity",
+            "购买数量"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "销售单位",
+          "nullable": false,
+          "null_semantics": "非空正整数；购买数量",
+          "source_type_text": "INTEGER，销售单位"
+        },
+        {
+          "name": "list_unit_gross_cents",
+          "label": "正常标价快照",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；正常标价快照",
+          "aliases": [
+            "list unit gross cents",
+            "正常标价快照"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_gross",
+          "nullable": false,
+          "null_semantics": "非空；正常标价快照",
+          "source_type_text": "INTEGER，含税欧分/销售单位"
+        },
+        {
+          "name": "sale_unit_gross_cents",
+          "label": "实际成交单位价快照",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；实际成交单位价快照",
+          "aliases": [
+            "sale unit gross cents",
+            "实际成交单位价快照"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_gross",
+          "nullable": false,
+          "null_semantics": "非空；实际成交单位价快照",
+          "source_type_text": "INTEGER，含税欧分/销售单位"
+        },
+        {
+          "name": "line_list_gross_cents",
+          "label": "数量×正常单位标价",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；数量×正常单位标价",
+          "aliases": [
+            "line list gross cents",
+            "数量×正常单位标价"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_gross",
+          "nullable": false,
+          "null_semantics": "非空；数量×正常单位标价",
+          "source_type_text": "INTEGER，含税欧分"
+        },
+        {
+          "name": "line_discount_gross_cents",
+          "label": "该行优惠差额，无优惠为 0",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；该行优惠差额，无优惠为 0",
+          "aliases": [
+            "line discount gross cents",
+            "该行优惠差额，无优惠为 0"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_gross",
+          "nullable": false,
+          "null_semantics": "非空；该行优惠差额，无优惠为 0",
+          "source_type_text": "INTEGER，含税欧分"
+        },
+        {
+          "name": "line_paid_gross_cents",
+          "label": "折后商品行金额，是否成交仍需核实支付",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；折后商品行金额，是否成交仍需核实支付",
+          "aliases": [
+            "line paid gross cents",
+            "折后商品行金额，是否成交仍需核实支付"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_gross",
+          "nullable": false,
+          "null_semantics": "非空；折后商品行金额，是否成交仍需核实支付",
+          "source_type_text": "INTEGER，含税欧分"
+        },
+        {
+          "name": "line_vat_cents",
+          "label": "由本行最终含税金额计算的税额",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；由本行最终含税金额计算的税额",
+          "aliases": [
+            "line vat cents",
+            "由本行最终含税金额计算的税额"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_vat",
+          "nullable": false,
+          "null_semantics": "非空；由本行最终含税金额计算的税额",
+          "source_type_text": "INTEGER，欧分"
+        },
+        {
+          "name": "line_ex_vat_cents",
+          "label": "本行含税金额减本行税额",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；本行含税金额减本行税额",
+          "aliases": [
+            "line ex vat cents",
+            "本行含税金额减本行税额"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_ex_vat",
+          "nullable": false,
+          "null_semantics": "非空；本行含税金额减本行税额",
+          "source_type_text": "INTEGER，不含税欧分"
+        },
+        {
+          "name": "unit_cost_ex_vat_cents",
+          "label": "固定标准到仓单位成本快照",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；固定标准到仓单位成本快照",
+          "aliases": [
+            "unit cost ex vat cents",
+            "固定标准到仓单位成本快照"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_ex_vat",
+          "nullable": false,
+          "null_semantics": "非空；固定标准到仓单位成本快照",
+          "source_type_text": "INTEGER，不含税欧分/销售单位"
+        },
+        {
+          "name": "line_cost_ex_vat_cents",
+          "label": "数量×成本快照，不是直接计入当期利润的费用",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；数量×成本快照，不是直接计入当期利润的费用",
+          "aliases": [
+            "line cost ex vat cents",
+            "数量×成本快照，不是直接计入当期利润的费用"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_ex_vat",
+          "nullable": false,
+          "null_semantics": "非空；数量×成本快照，不是直接计入当期利润的费用",
+          "source_type_text": "INTEGER，不含税欧分"
+        },
+        {
+          "name": "recorded_at",
+          "label": "首次记录时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；明细首次可知时间",
+          "aliases": [
+            "recorded at",
+            "首次记录时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；明细首次可知时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        }
+      ],
+      "duplicate_risks": [
+        "先按事实粒度和各自时间聚合，再与其他事实表连接；状态和金额必须遵循指标定义。"
+      ]
+    },
+    {
+      "id": "hn10_payments",
+      "name": "payments",
+      "label": "支付尝试",
+      "database": "homenova_20261015",
+      "domain": "资金",
+      "description": "`status` 为 `failed` 或 `captured`。失败尝试不增加实收和 GMV。成功支付的商品折后金额加运费应与扣款完全一致；退款另由退款表记录，不写负支付重复冲减。",
+      "business_terms": [
+        "支付尝试",
+        "资金"
+      ],
+      "grain": "一次支付尝试",
+      "primary_key": [
+        "payment_id"
+      ],
+      "unique_keys": [],
+      "dependency_fields": [
+        "payment_id",
+        "order_id",
+        "status",
+        "attempted_at",
+        "captured_at",
+        "capture_recorded_at",
+        "recorded_at"
+      ],
+      "fields": [
+        {
+          "name": "payment_id",
+          "label": "支付尝试标识",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；支付尝试标识",
+          "aliases": [
+            "payment id",
+            "支付尝试标识"
+          ],
+          "role": "identifier",
+          "aggregation": "none",
+          "unit": "PK",
+          "nullable": false,
+          "null_semantics": "非空；支付尝试标识",
+          "source_type_text": "TEXT，PK"
+        },
+        {
+          "name": "order_id",
+          "label": "指向订单",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；指向订单",
+          "aliases": [
+            "order id",
+            "指向订单"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "FK",
+          "nullable": false,
+          "null_semantics": "非空；指向订单",
+          "source_type_text": "TEXT，FK"
+        },
+        {
+          "name": "attempted_at",
+          "label": "尝试时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；尝试时间",
+          "aliases": [
+            "attempted at",
+            "尝试时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；尝试时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "captured_at",
+          "label": "成功扣款时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；成功扣款时间；失败为空",
+          "aliases": [
+            "captured at",
+            "成功扣款时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；成功扣款时间；失败为空",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "capture_recorded_at",
+          "label": "成功扣款首次可知时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；成功扣款首次可知时间；失败为空",
+          "aliases": [
+            "capture recorded at",
+            "成功扣款首次可知时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；成功扣款首次可知时间；失败为空",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "status",
+          "label": "支付尝试状态",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；failed/captured 允许值：failed, captured。",
+          "aliases": [
+            "status",
+            "支付尝试状态"
+          ],
+          "role": "filter",
+          "aggregation": "none",
+          "unit": "状态枚举",
+          "nullable": false,
+          "null_semantics": "非空；failed/captured",
+          "source_type_text": "TEXT，状态枚举",
+          "enum_values": [
+            "failed",
+            "captured"
+          ]
+        },
+        {
+          "name": "method",
+          "label": "card、paypal 或 bank_debit",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；card、paypal 或 bank_debit",
+          "aliases": [
+            "method",
+            "card、paypal 或 bank_debit"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；card、paypal 或 bank_debit",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "attempted_gross_cents",
+          "label": "本次尝试收取的订单金额",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；本次尝试收取的订单金额",
+          "aliases": [
+            "attempted gross cents",
+            "本次尝试收取的订单金额"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_gross",
+          "nullable": false,
+          "null_semantics": "非空；本次尝试收取的订单金额",
+          "source_type_text": "INTEGER，含税欧分"
+        },
+        {
+          "name": "captured_gross_cents",
+          "label": "成功扣款金额",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；成功扣款金额；失败为 0",
+          "aliases": [
+            "captured gross cents",
+            "成功扣款金额"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_gross",
+          "nullable": false,
+          "null_semantics": "非空；成功扣款金额；失败为 0",
+          "source_type_text": "INTEGER，含税欧分"
+        },
+        {
+          "name": "payment_fee_ex_vat_cents",
+          "label": "成功扣款产生的支付费用",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；成功扣款产生的支付费用；失败为 0",
+          "aliases": [
+            "payment fee ex vat cents",
+            "成功扣款产生的支付费用"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_ex_vat",
+          "nullable": false,
+          "null_semantics": "非空；成功扣款产生的支付费用；失败为 0",
+          "source_type_text": "INTEGER，不含税欧分"
+        },
+        {
+          "name": "provider_reference",
+          "label": "支付服务参考号，不是顾客身份",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；支付服务参考号，不是顾客身份",
+          "aliases": [
+            "provider reference",
+            "支付服务参考号，不是顾客身份"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；支付服务参考号，不是顾客身份",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "recorded_at",
+          "label": "首次记录时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；支付尝试首次可知时间",
+          "aliases": [
+            "recorded at",
+            "首次记录时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；支付尝试首次可知时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        }
+      ],
+      "duplicate_risks": [
+        "先按事实粒度和各自时间聚合，再与其他事实表连接；状态和金额必须遵循指标定义。"
+      ]
+    },
+    {
+      "id": "hn10_procurements",
+      "name": "procurements",
+      "label": "采购与收货批次",
+      "database": "homenova_20261015",
+      "domain": "采购",
+      "description": "一个采购参考号可以包含多个单 SKU 批次，不能把它当唯一主键。状态为 `ordered`（已下达、未到仓）、`arrived`（已到仓、未验收上架）、`accepted`（已验收）。只有验收上架数量进入库存；采购资产支出不直接作为当期商品销售成本。",
+      "business_terms": [
+        "采购与收货批次",
+        "采购"
+      ],
+      "grain": "一个 SKU 的一次计划收货批次",
+      "primary_key": [
+        "procurement_id"
+      ],
+      "unique_keys": [],
+      "dependency_fields": [
+        "procurement_id",
+        "sku_id",
+        "warehouse_id",
+        "ordered_at",
+        "expected_receipt_at",
+        "actual_arrival_at",
+        "arrival_recorded_at",
+        "accepted_at",
+        "acceptance_recorded_at",
+        "status_as_of",
+        "recorded_at"
+      ],
+      "fields": [
+        {
+          "name": "procurement_id",
+          "label": "单 SKU 收货批次标识",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；单 SKU 收货批次标识",
+          "aliases": [
+            "procurement id",
+            "单 SKU 收货批次标识"
+          ],
+          "role": "identifier",
+          "aggregation": "none",
+          "unit": "PK",
+          "nullable": false,
+          "null_semantics": "非空；单 SKU 收货批次标识",
+          "source_type_text": "TEXT，PK"
+        },
+        {
+          "name": "purchase_reference",
+          "label": "采购参考号",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；采购参考号",
+          "aliases": [
+            "purchase reference",
+            "采购参考号"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "非唯一",
+          "nullable": false,
+          "null_semantics": "非空；采购参考号",
+          "source_type_text": "TEXT，非唯一"
+        },
+        {
+          "name": "sku_id",
+          "label": "采购商品",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；采购商品",
+          "aliases": [
+            "sku id",
+            "采购商品"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "FK",
+          "nullable": false,
+          "null_semantics": "非空；采购商品",
+          "source_type_text": "TEXT，FK"
+        },
+        {
+          "name": "warehouse_id",
+          "label": "收货仓库",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；收货仓库",
+          "aliases": [
+            "warehouse id",
+            "收货仓库"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；收货仓库",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "supplier_code",
+          "label": "供应商代码",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；供应商代码",
+          "aliases": [
+            "supplier code",
+            "供应商代码"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；供应商代码",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "ordered_at",
+          "label": "采购下达时间，可早于本包新订单窗口",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；采购下达时间，可早于本包新订单窗口",
+          "aliases": [
+            "ordered at",
+            "采购下达时间，可早于本包新订单窗口"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；采购下达时间，可早于本包新订单窗口",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "expected_receipt_at",
+          "label": "原计划收货时间，不以实际到货覆盖",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；原计划收货时间，不以实际到货覆盖",
+          "aliases": [
+            "expected receipt at",
+            "原计划收货时间，不以实际到货覆盖"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；原计划收货时间，不以实际到货覆盖",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "actual_arrival_at",
+          "label": "未观察到到仓时为空",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；未观察到到仓时为空",
+          "aliases": [
+            "actual arrival at",
+            "未观察到到仓时为空"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；未观察到到仓时为空",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "arrival_recorded_at",
+          "label": "实际到仓首次可知时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；实际到仓首次可知时间",
+          "aliases": [
+            "arrival recorded at",
+            "实际到仓首次可知时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；实际到仓首次可知时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "accepted_at",
+          "label": "未验收上架时为空",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；未验收上架时为空",
+          "aliases": [
+            "accepted at",
+            "未验收上架时为空"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；未验收上架时为空",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "acceptance_recorded_at",
+          "label": "验收首次可知时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；验收首次可知时间",
+          "aliases": [
+            "acceptance recorded at",
+            "验收首次可知时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；验收首次可知时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "ordered_qty",
+          "label": "采购计划量",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空正整数；采购计划量",
+          "aliases": [
+            "ordered qty",
+            "采购计划量"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "销售单位",
+          "nullable": false,
+          "null_semantics": "非空正整数；采购计划量",
+          "source_type_text": "INTEGER，销售单位"
+        },
+        {
+          "name": "accepted_qty",
+          "label": "已验收合格量，尚未验收时为 0，不大于计划量",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；已验收合格量，尚未验收时为 0，不大于计划量",
+          "aliases": [
+            "accepted qty",
+            "已验收合格量，尚未验收时为 0，不大于计划量"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "销售单位",
+          "nullable": false,
+          "null_semantics": "非空；已验收合格量，尚未验收时为 0，不大于计划量",
+          "source_type_text": "INTEGER，销售单位"
+        },
+        {
+          "name": "unit_cost_ex_vat_cents",
+          "label": "与商品固定标准到仓单位成本一致",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；与商品固定标准到仓单位成本一致",
+          "aliases": [
+            "unit cost ex vat cents",
+            "与商品固定标准到仓单位成本一致"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_ex_vat",
+          "nullable": false,
+          "null_semantics": "非空；与商品固定标准到仓单位成本一致",
+          "source_type_text": "INTEGER，不含税欧分/销售单位"
+        },
+        {
+          "name": "status_as_of",
+          "label": "观察截点业务状态",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；ordered/arrived/accepted 允许值：ordered, arrived, accepted。",
+          "aliases": [
+            "status as of",
+            "观察截点业务状态"
+          ],
+          "role": "filter",
+          "aggregation": "none",
+          "unit": "状态枚举",
+          "nullable": false,
+          "null_semantics": "非空；ordered/arrived/accepted",
+          "source_type_text": "TEXT，状态枚举",
+          "enum_values": [
+            "ordered",
+            "arrived",
+            "accepted"
+          ]
+        },
+        {
+          "name": "recorded_at",
+          "label": "首次记录时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；采购批次首次可知时间",
+          "aliases": [
+            "recorded at",
+            "首次记录时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；采购批次首次可知时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        }
+      ],
+      "duplicate_risks": [
+        "先按事实粒度和各自时间聚合，再与其他事实表连接；状态和金额必须遵循指标定义。"
+      ]
+    },
+    {
+      "id": "hn10_inventory_movements",
+      "name": "inventory_movements",
+      "label": "库存事件账",
+      "database": "homenova_20261015",
+      "domain": "库存",
+      "description": "按 `occurred_at, event_seq` 处理事件，按 SKU 与仓库分别累计。`event_seq` 是同时间业务排序依据，不可用 CSV 行顺序代替。`on_hand` 是可进入销售库存的在库量，`reserved` 为订单预占，可售量为二者之差。",
+      "business_terms": [
+        "库存事件账",
+        "库存"
+      ],
+      "grain": "一次 SKU 库存状态变化",
+      "primary_key": [
+        "movement_id"
+      ],
+      "unique_keys": [],
+      "dependency_fields": [
+        "movement_id",
+        "event_seq",
+        "sku_id",
+        "warehouse_id",
+        "movement_type",
+        "occurred_at",
+        "recorded_at",
+        "on_hand_delta",
+        "reserved_delta",
+        "order_item_id",
+        "procurement_id",
+        "refund_line_id",
+        "shipment_id"
+      ],
+      "fields": [
+        {
+          "name": "movement_id",
+          "label": "库存移动标识",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；库存移动标识",
+          "aliases": [
+            "movement id",
+            "库存移动标识"
+          ],
+          "role": "identifier",
+          "aggregation": "none",
+          "unit": "PK",
+          "nullable": false,
+          "null_semantics": "非空；库存移动标识",
+          "source_type_text": "TEXT，PK"
+        },
+        {
+          "name": "event_seq",
+          "label": "有序事件序号，用于稳定处理同时间事件",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；有序事件序号，用于稳定处理同时间事件",
+          "aliases": [
+            "event seq",
+            "有序事件序号，用于稳定处理同时间事件"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "BIGINT",
+          "nullable": false,
+          "null_semantics": "非空；有序事件序号，用于稳定处理同时间事件",
+          "source_type_text": "INTEGER"
+        },
+        {
+          "name": "sku_id",
+          "label": "商品",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；商品",
+          "aliases": [
+            "sku id",
+            "商品"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "FK",
+          "nullable": false,
+          "null_semantics": "非空；商品",
+          "source_type_text": "TEXT，FK"
+        },
+        {
+          "name": "warehouse_id",
+          "label": "仓库",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；仓库",
+          "aliases": [
+            "warehouse id",
+            "仓库"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；仓库",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "movement_type",
+          "label": "见下表",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；见下表",
+          "aliases": [
+            "movement type",
+            "见下表"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "事件枚举",
+          "nullable": false,
+          "null_semantics": "非空；见下表",
+          "source_type_text": "TEXT，事件枚举"
+        },
+        {
+          "name": "occurred_at",
+          "label": "库存动作生效时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；库存动作生效时间",
+          "aliases": [
+            "occurred at",
+            "库存动作生效时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；库存动作生效时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "recorded_at",
+          "label": "首次记录时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；库存动作首次可知时间",
+          "aliases": [
+            "recorded at",
+            "首次记录时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；库存动作首次可知时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "on_hand_delta",
+          "label": "实物在库增减，可正、负或 0",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；实物在库增减，可正、负或 0",
+          "aliases": [
+            "on hand delta",
+            "实物在库增减，可正、负或 0"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "销售单位",
+          "nullable": false,
+          "null_semantics": "非空；实物在库增减，可正、负或 0",
+          "source_type_text": "INTEGER，销售单位"
+        },
+        {
+          "name": "reserved_delta",
+          "label": "订单预占增减，可正、负或 0",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；订单预占增减，可正、负或 0",
+          "aliases": [
+            "reserved delta",
+            "订单预占增减，可正、负或 0"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "销售单位",
+          "nullable": false,
+          "null_semantics": "非空；订单预占增减，可正、负或 0",
+          "source_type_text": "INTEGER，销售单位"
+        },
+        {
+          "name": "order_item_id",
+          "label": "reserve/release/ship 必填",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "reserve/release/ship 必填；其他不适用时为空",
+          "aliases": [
+            "order item id",
+            "reserve/release/ship 必填"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "可空 FK",
+          "nullable": true,
+          "null_semantics": "reserve/release/ship 必填；其他不适用时为空",
+          "source_type_text": "TEXT，可空 FK"
+        },
+        {
+          "name": "procurement_id",
+          "label": "receipt 必填",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "receipt 必填；其他不适用时为空",
+          "aliases": [
+            "procurement id",
+            "receipt 必填"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "可空 FK",
+          "nullable": true,
+          "null_semantics": "receipt 必填；其他不适用时为空",
+          "source_type_text": "TEXT，可空 FK"
+        },
+        {
+          "name": "refund_line_id",
+          "label": "return_restock 必填",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "return_restock 必填；其他不适用时为空",
+          "aliases": [
+            "refund line id",
+            "return_restock 必填"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "可空 FK",
+          "nullable": true,
+          "null_semantics": "return_restock 必填；其他不适用时为空",
+          "source_type_text": "TEXT，可空 FK"
+        },
+        {
+          "name": "shipment_id",
+          "label": "ship 必填",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "ship 必填；其他不适用时为空",
+          "aliases": [
+            "shipment id",
+            "ship 必填"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "可空 FK",
+          "nullable": true,
+          "null_semantics": "ship 必填；其他不适用时为空",
+          "source_type_text": "TEXT，可空 FK"
+        }
+      ],
+      "duplicate_risks": [
+        "先按事实粒度和各自时间聚合，再与其他事实表连接；状态和金额必须遵循指标定义。"
+      ]
+    },
+    {
+      "id": "hn10_shipments",
+      "name": "shipments",
+      "label": "履约与配送",
+      "database": "homenova_20261015",
+      "domain": "履约",
+      "description": "一笔订单最多一个发货单，覆盖该订单全部明细，不做部分发货。状态为 `in_transit` 或 `delivered`。实际发货确认收入与销售成本；预计送达时间不随事后延迟修改。",
+      "business_terms": [
+        "履约与配送",
+        "履约"
+      ],
+      "grain": "一笔订单的一次全量发货",
+      "primary_key": [
+        "shipment_id"
+      ],
+      "unique_keys": [
+        [
+          "order_id"
+        ]
+      ],
+      "dependency_fields": [
+        "shipment_id",
+        "order_id",
+        "warehouse_id",
+        "shipped_at",
+        "promised_delivery_at",
+        "delivered_at",
+        "delivery_recorded_at",
+        "status_as_of",
+        "recorded_at"
+      ],
+      "fields": [
+        {
+          "name": "shipment_id",
+          "label": "发货单标识",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；发货单标识",
+          "aliases": [
+            "shipment id",
+            "发货单标识"
+          ],
+          "role": "identifier",
+          "aggregation": "none",
+          "unit": "PK",
+          "nullable": false,
+          "null_semantics": "非空；发货单标识",
+          "source_type_text": "TEXT，PK"
+        },
+        {
+          "name": "order_id",
+          "label": "已成功支付、未取消的订单",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；已成功支付、未取消的订单",
+          "aliases": [
+            "order id",
+            "已成功支付、未取消的订单"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "唯一 FK",
+          "nullable": false,
+          "null_semantics": "非空；已成功支付、未取消的订单",
+          "source_type_text": "TEXT，唯一 FK"
+        },
+        {
+          "name": "warehouse_id",
+          "label": "出库仓库",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；出库仓库",
+          "aliases": [
+            "warehouse id",
+            "出库仓库"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；出库仓库",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "carrier_code",
+          "label": "承运商代码",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；承运商代码",
+          "aliases": [
+            "carrier code",
+            "承运商代码"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；承运商代码",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "postal_prefix",
+          "label": "配送邮区前两位",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；订单目的邮区",
+          "aliases": [
+            "postal prefix",
+            "配送邮区前两位"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "邮区前两位",
+          "nullable": false,
+          "null_semantics": "非空；订单目的邮区",
+          "source_type_text": "TEXT，邮区前两位"
+        },
+        {
+          "name": "shipped_at",
+          "label": "交仓发货及收入/成本确认时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；交仓发货及收入/成本确认时间",
+          "aliases": [
+            "shipped at",
+            "交仓发货及收入/成本确认时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；交仓发货及收入/成本确认时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "promised_delivery_at",
+          "label": "发货时已确定的承诺送达时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；发货时已确定的承诺送达时间",
+          "aliases": [
+            "promised delivery at",
+            "发货时已确定的承诺送达时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；发货时已确定的承诺送达时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "delivered_at",
+          "label": "尚未观察到签收时为空，不等于 0 配送时长",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；尚未观察到签收时为空，不等于 0 配送时长",
+          "aliases": [
+            "delivered at",
+            "尚未观察到签收时为空，不等于 0 配送时长"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；尚未观察到签收时为空，不等于 0 配送时长",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "delivery_recorded_at",
+          "label": "实际签收首次可知时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；实际签收首次可知时间",
+          "aliases": [
+            "delivery recorded at",
+            "实际签收首次可知时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；实际签收首次可知时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "status_as_of",
+          "label": "观察截点业务状态",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；in_transit/delivered 允许值：in_transit, delivered。",
+          "aliases": [
+            "status as of",
+            "观察截点业务状态"
+          ],
+          "role": "filter",
+          "aggregation": "none",
+          "unit": "状态枚举",
+          "nullable": false,
+          "null_semantics": "非空；in_transit/delivered",
+          "source_type_text": "TEXT，状态枚举",
+          "enum_values": [
+            "in_transit",
+            "delivered"
+          ]
+        },
+        {
+          "name": "carrier_cost_ex_vat_cents",
+          "label": "该次发货承运费用，不是向顾客收取的运费",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；该次发货承运费用，不是向顾客收取的运费",
+          "aliases": [
+            "carrier cost ex vat cents",
+            "该次发货承运费用，不是向顾客收取的运费"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_ex_vat",
+          "nullable": false,
+          "null_semantics": "非空；该次发货承运费用，不是向顾客收取的运费",
+          "source_type_text": "INTEGER，不含税欧分"
+        },
+        {
+          "name": "recorded_at",
+          "label": "首次记录时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；发货记录首次可知时间",
+          "aliases": [
+            "recorded at",
+            "首次记录时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；发货记录首次可知时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        }
+      ],
+      "duplicate_risks": [
+        "先按事实粒度和各自时间聚合，再与其他事实表连接；状态和金额必须遵循指标定义。"
+      ]
+    },
+    {
+      "id": "hn10_refunds",
+      "name": "refunds",
+      "label": "退款与退货分摊",
+      "database": "homenova_20261015",
+      "domain": "售后与资金",
+      "description": "同一 `refund_id` 的多行属于同一申请；相同原商品行可以顺序发生多次部分退款。状态为 `requested`（已申请）、`approved`（已批准、未完成资金退款）、`completed`（资金退款完成）、`rejected`（已拒绝）。申请/批准不计已完成现金退款；退货验收可以早于或晚于资金退款完成。\n\n`refund_kind` 取值：`pre_ship_cancel` 为已付未发货取消；`return_and_refund` 为退货退款；`refund_only` 为仅退款、不恢复商品库存或成本；`shipping_only` 为单独退还原已收顾客运费。仅商品退款按原实际成交商品件数计算，不做任意比例金额补偿。运费退款在同申请各商品行间分摊一次，不能每行重复整笔运费。",
+      "business_terms": [
+        "退款与退货分摊",
+        "售后与资金"
+      ],
+      "grain": "一次退款申请分配到某原商品行的一笔分摊",
+      "primary_key": [
+        "refund_line_id"
+      ],
+      "unique_keys": [],
+      "dependency_fields": [
+        "refund_line_id",
+        "refund_id",
+        "order_item_id",
+        "payment_id",
+        "refund_kind",
+        "status_as_of",
+        "requested_at",
+        "approved_at",
+        "approval_recorded_at",
+        "completed_at",
+        "completion_recorded_at",
+        "returned_at",
+        "return_recorded_at",
+        "inspected_at",
+        "inspection_recorded_at",
+        "return_cost_incurred_at",
+        "return_cost_recorded_at",
+        "recorded_at"
+      ],
+      "fields": [
+        {
+          "name": "refund_line_id",
+          "label": "退款分摊行标识",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；退款分摊行标识",
+          "aliases": [
+            "refund line id",
+            "退款分摊行标识"
+          ],
+          "role": "identifier",
+          "aggregation": "none",
+          "unit": "PK",
+          "nullable": false,
+          "null_semantics": "非空；退款分摊行标识",
+          "source_type_text": "TEXT，PK"
+        },
+        {
+          "name": "refund_id",
+          "label": "退款申请标识",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；退款申请标识",
+          "aliases": [
+            "refund id",
+            "退款申请标识"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "非唯一分组键",
+          "nullable": false,
+          "null_semantics": "非空；退款申请标识",
+          "source_type_text": "TEXT，非唯一分组键"
+        },
+        {
+          "name": "order_item_id",
+          "label": "原订单商品行",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；原订单商品行",
+          "aliases": [
+            "order item id",
+            "原订单商品行"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "FK",
+          "nullable": false,
+          "null_semantics": "非空；原订单商品行",
+          "source_type_text": "TEXT，FK"
+        },
+        {
+          "name": "payment_id",
+          "label": "原订单的成功收款记录",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；原订单的成功收款记录",
+          "aliases": [
+            "payment id",
+            "原订单的成功收款记录"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "FK",
+          "nullable": false,
+          "null_semantics": "非空；原订单的成功收款记录",
+          "source_type_text": "TEXT，FK"
+        },
+        {
+          "name": "reason_code",
+          "label": "业务记录的申请理由，不等于已证实的唯一原因",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；业务记录的申请理由，不等于已证实的唯一原因",
+          "aliases": [
+            "reason code",
+            "业务记录的申请理由，不等于已证实的唯一原因"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；业务记录的申请理由，不等于已证实的唯一原因",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "refund_kind",
+          "label": "上述四个分支之一",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；上述四个分支之一 允许值：pre_ship_cancel, return_and_refund, refund_only, shipping_only。",
+          "aliases": [
+            "refund kind",
+            "上述四个分支之一"
+          ],
+          "role": "filter",
+          "aggregation": "none",
+          "unit": "分支枚举",
+          "nullable": false,
+          "null_semantics": "非空；上述四个分支之一",
+          "source_type_text": "TEXT，分支枚举",
+          "enum_values": [
+            "pre_ship_cancel",
+            "return_and_refund",
+            "refund_only",
+            "shipping_only"
+          ]
+        },
+        {
+          "name": "requested_at",
+          "label": "申请时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；申请时间",
+          "aliases": [
+            "requested at",
+            "申请时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；申请时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "approved_at",
+          "label": "未批准或已拒绝时为空",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；未批准或已拒绝时为空",
+          "aliases": [
+            "approved at",
+            "未批准或已拒绝时为空"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；未批准或已拒绝时为空",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "approval_recorded_at",
+          "label": "批准首次可知时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；批准首次可知时间",
+          "aliases": [
+            "approval recorded at",
+            "批准首次可知时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；批准首次可知时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "completed_at",
+          "label": "尚未完成资金退款时为空",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；尚未完成资金退款时为空",
+          "aliases": [
+            "completed at",
+            "尚未完成资金退款时为空"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；尚未完成资金退款时为空",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "completion_recorded_at",
+          "label": "资金完成首次可知时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；资金完成首次可知时间",
+          "aliases": [
+            "completion recorded at",
+            "资金完成首次可知时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；资金完成首次可知时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "status_as_of",
+          "label": "观察截点业务状态",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；requested/approved/completed/rejected 允许值：requested, approved, completed, rejected。",
+          "aliases": [
+            "status as of",
+            "观察截点业务状态"
+          ],
+          "role": "filter",
+          "aggregation": "none",
+          "unit": "状态枚举",
+          "nullable": false,
+          "null_semantics": "非空；requested/approved/completed/rejected",
+          "source_type_text": "TEXT，状态枚举",
+          "enum_values": [
+            "requested",
+            "approved",
+            "completed",
+            "rejected"
+          ]
+        },
+        {
+          "name": "refund_qty",
+          "label": "申请对应商品件数，shipping_only 为 0",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；申请对应商品件数，shipping_only 为 0；本字段非零不代表资金已经退回",
+          "aliases": [
+            "refund qty",
+            "申请对应商品件数，shipping_only 为 0"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "销售单位",
+          "nullable": false,
+          "null_semantics": "非空；申请对应商品件数，shipping_only 为 0；本字段非零不代表资金已经退回",
+          "source_type_text": "INTEGER，销售单位"
+        },
+        {
+          "name": "item_refund_gross_cents",
+          "label": "本行拟退/已完成商品含税额",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；本行拟退/已完成商品含税额；是否已支付须按 completed_at/status 判断",
+          "aliases": [
+            "item refund gross cents",
+            "本行拟退/已完成商品含税额"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_gross",
+          "nullable": false,
+          "null_semantics": "非空；本行拟退/已完成商品含税额；是否已支付须按 completed_at/status 判断",
+          "source_type_text": "INTEGER，含税欧分"
+        },
+        {
+          "name": "item_refund_vat_cents",
+          "label": "未完成资金退款时为空",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "可空；未完成资金退款时为空；完成后为本次商品退税分摊",
+          "aliases": [
+            "item refund vat cents",
+            "未完成资金退款时为空"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_vat",
+          "nullable": true,
+          "null_semantics": "可空；未完成资金退款时为空；完成后为本次商品退税分摊",
+          "source_type_text": "INTEGER，欧分"
+        },
+        {
+          "name": "item_refund_ex_vat_cents",
+          "label": "未完成资金退款时为空",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "可空；未完成资金退款时为空；完成后为商品含税退款减税额",
+          "aliases": [
+            "item refund ex vat cents",
+            "未完成资金退款时为空"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_ex_vat",
+          "nullable": true,
+          "null_semantics": "可空；未完成资金退款时为空；完成后为商品含税退款减税额",
+          "source_type_text": "INTEGER，不含税欧分"
+        },
+        {
+          "name": "shipping_refund_gross_cents",
+          "label": "本行分摊的拟退/已完成顾客运费",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；本行分摊的拟退/已完成顾客运费；未退运费为 0，未完成不计现金退款",
+          "aliases": [
+            "shipping refund gross cents",
+            "本行分摊的拟退/已完成顾客运费"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_gross",
+          "nullable": false,
+          "null_semantics": "非空；本行分摊的拟退/已完成顾客运费；未退运费为 0，未完成不计现金退款",
+          "source_type_text": "INTEGER，含税欧分"
+        },
+        {
+          "name": "shipping_refund_vat_cents",
+          "label": "未完成资金退款时为空",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "可空；未完成资金退款时为空；完成后为本次运费退税分摊，可为 0",
+          "aliases": [
+            "shipping refund vat cents",
+            "未完成资金退款时为空"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_vat",
+          "nullable": true,
+          "null_semantics": "可空；未完成资金退款时为空；完成后为本次运费退税分摊，可为 0",
+          "source_type_text": "INTEGER，欧分"
+        },
+        {
+          "name": "shipping_refund_ex_vat_cents",
+          "label": "未完成资金退款时为空",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "可空；未完成资金退款时为空；完成后为运费含税退款减税额",
+          "aliases": [
+            "shipping refund ex vat cents",
+            "未完成资金退款时为空"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_ex_vat",
+          "nullable": true,
+          "null_semantics": "可空；未完成资金退款时为空；完成后为运费含税退款减税额",
+          "source_type_text": "INTEGER，不含税欧分"
+        },
+        {
+          "name": "returned_at",
+          "label": "尚未观察到退回或不适用退货时为空",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；尚未观察到退回或不适用退货时为空",
+          "aliases": [
+            "returned at",
+            "尚未观察到退回或不适用退货时为空"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；尚未观察到退回或不适用退货时为空",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "return_recorded_at",
+          "label": "退回首次可知时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；退回首次可知时间",
+          "aliases": [
+            "return recorded at",
+            "退回首次可知时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；退回首次可知时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "inspected_at",
+          "label": "尚未验收或不适用时为空",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；尚未验收或不适用时为空",
+          "aliases": [
+            "inspected at",
+            "尚未验收或不适用时为空"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；尚未验收或不适用时为空",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "inspection_recorded_at",
+          "label": "验收首次可知时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；验收首次可知时间",
+          "aliases": [
+            "inspection recorded at",
+            "验收首次可知时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；验收首次可知时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "returned_qty",
+          "label": "已实际退回数量，尚未发生或不适用为 0",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；已实际退回数量，尚未发生或不适用为 0",
+          "aliases": [
+            "returned qty",
+            "已实际退回数量，尚未发生或不适用为 0"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "销售单位",
+          "nullable": false,
+          "null_semantics": "非空；已实际退回数量，尚未发生或不适用为 0",
+          "source_type_text": "INTEGER，销售单位"
+        },
+        {
+          "name": "restock_qty",
+          "label": "已验收可再售数量，尚未发生或不可再售为 0",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；已验收可再售数量，尚未发生或不可再售为 0",
+          "aliases": [
+            "restock qty",
+            "已验收可再售数量，尚未发生或不可再售为 0"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "销售单位",
+          "nullable": false,
+          "null_semantics": "非空；已验收可再售数量，尚未发生或不可再售为 0",
+          "source_type_text": "INTEGER，销售单位"
+        },
+        {
+          "name": "recovered_cost_ex_vat_cents",
+          "label": "可再售数量×原订单单位成本",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；可再售数量×原订单单位成本；尚未验收或不恢复成本为 0",
+          "aliases": [
+            "recovered cost ex vat cents",
+            "可再售数量×原订单单位成本"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_ex_vat",
+          "nullable": false,
+          "null_semantics": "非空；可再售数量×原订单单位成本；尚未验收或不恢复成本为 0",
+          "source_type_text": "INTEGER，不含税欧分"
+        },
+        {
+          "name": "return_carrier_cost_ex_vat_cents",
+          "label": "已发生退运费用，尚未发生或不适用为 0",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；已发生退运费用，尚未发生或不适用为 0",
+          "aliases": [
+            "return carrier cost ex vat cents",
+            "已发生退运费用，尚未发生或不适用为 0"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_ex_vat",
+          "nullable": false,
+          "null_semantics": "非空；已发生退运费用，尚未发生或不适用为 0",
+          "source_type_text": "INTEGER，不含税欧分"
+        },
+        {
+          "name": "handling_cost_ex_vat_cents",
+          "label": "已发生售后处理费用，尚未发生或不适用为 0",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；已发生售后处理费用，尚未发生或不适用为 0",
+          "aliases": [
+            "handling cost ex vat cents",
+            "已发生售后处理费用，尚未发生或不适用为 0"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_ex_vat",
+          "nullable": false,
+          "null_semantics": "非空；已发生售后处理费用，尚未发生或不适用为 0",
+          "source_type_text": "INTEGER，不含税欧分"
+        },
+        {
+          "name": "return_cost_incurred_at",
+          "label": "退运/处理费用确认时点，尚未发生或不适用为空",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；退运/处理费用确认时点，尚未发生或不适用为空",
+          "aliases": [
+            "return cost incurred at",
+            "退运/处理费用确认时点，尚未发生或不适用为空"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；退运/处理费用确认时点，尚未发生或不适用为空",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "return_cost_recorded_at",
+          "label": "退运/处理费用首次可知时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；退运/处理费用首次可知时间",
+          "aliases": [
+            "return cost recorded at",
+            "退运/处理费用首次可知时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；退运/处理费用首次可知时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "recorded_at",
+          "label": "首次记录时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；申请首次可知时间",
+          "aliases": [
+            "recorded at",
+            "首次记录时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；申请首次可知时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        }
+      ],
+      "duplicate_risks": [
+        "先按事实粒度和各自时间聚合，再与其他事实表连接；状态和金额必须遵循指标定义。"
+      ]
+    },
+    {
+      "id": "hn10_campaigns",
+      "name": "campaigns",
+      "label": "广告计划版本",
+      "database": "homenova_20261015",
+      "domain": "广告",
+      "description": "每个计划版本只对应一个目标 SKU、一个渠道和一种定位。定位或执行版本变更形成新 `campaign_id`，同系列通过 `campaign_family_id` 关联；同系列版本有效区间不可重叠。广告目标 SKU 与最终成交 SKU 可以不同，不能将跨品成交删掉。",
+      "business_terms": [
+        "广告计划版本",
+        "广告"
+      ],
+      "grain": "一个广告计划不可变操作版本",
+      "primary_key": [
+        "campaign_id"
+      ],
+      "unique_keys": [],
+      "dependency_fields": [
+        "campaign_id",
+        "campaign_family_id",
+        "target_sku_id",
+        "channel_code",
+        "targeting_type",
+        "valid_from",
+        "valid_to",
+        "action_recorded_at",
+        "currency"
+      ],
+      "fields": [
+        {
+          "name": "campaign_id",
+          "label": "不可变计划版本标识",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；不可变计划版本标识",
+          "aliases": [
+            "campaign id",
+            "不可变计划版本标识"
+          ],
+          "role": "identifier",
+          "aggregation": "none",
+          "unit": "PK",
+          "nullable": false,
+          "null_semantics": "非空；不可变计划版本标识",
+          "source_type_text": "TEXT，PK"
+        },
+        {
+          "name": "campaign_family_id",
+          "label": "同一投放系列的跨版本标识",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；同一投放系列的跨版本标识",
+          "aliases": [
+            "campaign family id",
+            "同一投放系列的跨版本标识"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "非唯一",
+          "nullable": false,
+          "null_semantics": "非空；同一投放系列的跨版本标识",
+          "source_type_text": "TEXT，非唯一"
+        },
+        {
+          "name": "target_sku_id",
+          "label": "广告目标商品，不强制等于最终购物篮商品",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；广告目标商品，不强制等于最终购物篮商品",
+          "aliases": [
+            "target sku id",
+            "广告目标商品，不强制等于最终购物篮商品"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "FK",
+          "nullable": false,
+          "null_semantics": "非空；广告目标商品，不强制等于最终购物篮商品",
+          "source_type_text": "TEXT，FK"
+        },
+        {
+          "name": "channel_code",
+          "label": "paid_search_brand、paid_search_ge",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；paid_search_brand、paid_search_generic 或 paid_social",
+          "aliases": [
+            "channel code",
+            "paid_search_brand、paid_search_ge"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；paid_search_brand、paid_search_generic 或 paid_social",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "targeting_type",
+          "label": "广告定向类型",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；brand、high_intent 或 broad 的定位类别",
+          "aliases": [
+            "targeting type",
+            "广告定向类型"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；brand、high_intent 或 broad 的定位类别",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "device_focus",
+          "label": "投放设备范围代码，不等于每次实际访问设备",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；投放设备范围代码，不等于每次实际访问设备",
+          "aliases": [
+            "device focus",
+            "投放设备范围代码，不等于每次实际访问设备"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；投放设备范围代码，不等于每次实际访问设备",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "valid_from",
+          "label": "版本生效时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；版本生效时间",
+          "aliases": [
+            "valid from",
+            "版本生效时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；版本生效时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "valid_to",
+          "label": "版本结束，空表示尚未登记结束",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "可空；版本结束，空表示尚未登记结束；区间左闭右开",
+          "aliases": [
+            "valid to",
+            "版本结束，空表示尚未登记结束"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": true,
+          "null_semantics": "可空；版本结束，空表示尚未登记结束；区间左闭右开",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "action_recorded_at",
+          "label": "该计划动作首次可知时间，不提前填入未来执行结果",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；该计划动作首次可知时间，不提前填入未来执行结果",
+          "aliases": [
+            "action recorded at",
+            "该计划动作首次可知时间，不提前填入未来执行结果"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；该计划动作首次可知时间，不提前填入未来执行结果",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "currency",
+          "label": "交易币种",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；EUR",
+          "aliases": [
+            "currency",
+            "交易币种"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；EUR",
+          "source_type_text": "TEXT"
+        }
+      ],
+      "duplicate_risks": [
+        "先按事实粒度和各自时间聚合，再与其他事实表连接；状态和金额必须遵循指标定义。"
+      ]
+    },
+    {
+      "id": "hn10_ad_daily",
+      "name": "ad_daily",
+      "label": "广告平台日结",
+      "database": "homenova_20261015",
+      "domain": "广告",
+      "description": "复合主键 `(campaign_id, stat_local_date)`；同一版本同一天至多一行。预算是费用上限，实际费用来自该日计费点击，不保证花完。平台日结不保存独立随机转化数、归因收入或 ROAS，这些须从交易与点击关联计算。本包只导出已经完整上报的广告日，不能把缺行当零活动。",
+      "business_terms": [
+        "广告平台日结",
+        "广告"
+      ],
+      "grain": "一个广告计划版本×当地经营日",
+      "primary_key": [
+        "campaign_id",
+        "stat_local_date"
+      ],
+      "unique_keys": [],
+      "dependency_fields": [
+        "campaign_id",
+        "stat_local_date",
+        "budget_cap_ex_vat_cents",
+        "budget_action_at",
+        "impressions",
+        "clicks",
+        "spend_ex_vat_cents",
+        "report_complete",
+        "recorded_at"
+      ],
+      "fields": [
+        {
+          "name": "campaign_id",
+          "label": "指向 campaigns",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；指向 campaigns",
+          "aliases": [
+            "campaign id",
+            "指向 campaigns"
+          ],
+          "role": "identifier",
+          "aggregation": "none",
+          "unit": "复合 PK、FK",
+          "nullable": false,
+          "null_semantics": "非空；指向 campaigns",
+          "source_type_text": "TEXT，复合 PK、FK"
+        },
+        {
+          "name": "stat_local_date",
+          "label": "Europe/Berlin 的广告投放经营日",
+          "type": "日期",
+          "sql_type": "DATE",
+          "description": "非空；Europe/Berlin 的广告投放经营日",
+          "aliases": [
+            "stat local date",
+            "Europe/Berlin 的广告投放经营日"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "YYYY-MM-DD，复合 PK",
+          "nullable": false,
+          "null_semantics": "非空；Europe/Berlin 的广告投放经营日",
+          "source_type_text": "DATE，YYYY-MM-DD，复合 PK"
+        },
+        {
+          "name": "budget_cap_ex_vat_cents",
+          "label": "该版本该日预算上限，不是已经发生的费用",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；该版本该日预算上限，不是已经发生的费用",
+          "aliases": [
+            "budget cap ex vat cents",
+            "该版本该日预算上限，不是已经发生的费用"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_ex_vat",
+          "nullable": false,
+          "null_semantics": "非空；该版本该日预算上限，不是已经发生的费用",
+          "source_type_text": "INTEGER，不含税欧分"
+        },
+        {
+          "name": "budget_action_at",
+          "label": "适用预算动作时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；适用预算动作时间",
+          "aliases": [
+            "budget action at",
+            "适用预算动作时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；适用预算动作时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "impressions",
+          "label": "平台实际曝光数",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空非负；平台实际曝光数",
+          "aliases": [
+            "impressions",
+            "平台实际曝光数"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "次",
+          "nullable": false,
+          "null_semantics": "非空非负；平台实际曝光数",
+          "source_type_text": "INTEGER，次"
+        },
+        {
+          "name": "clicks",
+          "label": "该版本当地经营日计费点击数，不大于曝光数",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空非负；该版本当地经营日计费点击数，不大于曝光数",
+          "aliases": [
+            "clicks",
+            "该版本当地经营日计费点击数，不大于曝光数"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "次",
+          "nullable": false,
+          "null_semantics": "非空非负；该版本当地经营日计费点击数，不大于曝光数",
+          "source_type_text": "INTEGER，次"
+        },
+        {
+          "name": "spend_ex_vat_cents",
+          "label": "对应计费点击费用之和，不超过适用预算",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空非负；对应计费点击费用之和，不超过适用预算",
+          "aliases": [
+            "spend ex vat cents",
+            "对应计费点击费用之和，不超过适用预算"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_ex_vat",
+          "nullable": false,
+          "null_semantics": "非空非负；对应计费点击费用之和，不超过适用预算",
+          "source_type_text": "INTEGER，不含税欧分"
+        },
+        {
+          "name": "report_complete",
+          "label": "本包导出的平台日记录为已完整上报",
+          "type": "布尔",
+          "sql_type": "BOOLEAN",
+          "description": "非空；本包导出的平台日记录为已完整上报",
+          "aliases": [
+            "report complete",
+            "本包导出的平台日记录为已完整上报"
+          ],
+          "role": "filter",
+          "aggregation": "none",
+          "unit": "BOOLEAN",
+          "nullable": false,
+          "null_semantics": "非空；本包导出的平台日记录为已完整上报",
+          "source_type_text": "BOOLEAN"
+        },
+        {
+          "name": "recorded_at",
+          "label": "首次记录时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；完整日结首次可知时间，通常为该经营日结束后",
+          "aliases": [
+            "recorded at",
+            "首次记录时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；完整日结首次可知时间，通常为该经营日结束后",
+          "source_type_text": "UTC_TIMESTAMP"
+        }
+      ],
+      "duplicate_risks": [
+        "先按事实粒度和各自时间聚合，再与其他事实表连接；状态和金额必须遵循指标定义。"
+      ]
+    },
+    {
+      "id": "hn10_visit_events",
+      "name": "visit_events",
+      "label": "计费点击与站内行为",
+      "database": "homenova_20261015",
+      "domain": "访问与广告",
+      "description": "追加事件，不把“潜在想买”当成可见事实。点击与库存事件共用有序 `event_seq`，可用于重建行为发生前的可售库存。每个成功落地的付费点击只对应一个会话；未落地点击仍可能产生媒体费用。",
+      "business_terms": [
+        "计费点击与站内行为",
+        "访问与广告"
+      ],
+      "grain": "一个计费点击或站内行为事件",
+      "primary_key": [
+        "event_id"
+      ],
+      "unique_keys": [],
+      "dependency_fields": [
+        "event_id",
+        "event_seq",
+        "event_type",
+        "occurred_at",
+        "recorded_at",
+        "session_id",
+        "visitor_id",
+        "campaign_id",
+        "sku_id",
+        "available_qty_observed",
+        "failure_reason"
+      ],
+      "fields": [
+        {
+          "name": "event_id",
+          "label": "点击或行为事件标识",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；点击或行为事件标识",
+          "aliases": [
+            "event id",
+            "点击或行为事件标识"
+          ],
+          "role": "identifier",
+          "aggregation": "none",
+          "unit": "PK",
+          "nullable": false,
+          "null_semantics": "非空；点击或行为事件标识",
+          "source_type_text": "TEXT，PK"
+        },
+        {
+          "name": "event_seq",
+          "label": "全局有序事件序号，不以 CSV 行顺序替代",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "非空；全局有序事件序号，不以 CSV 行顺序替代",
+          "aliases": [
+            "event seq",
+            "全局有序事件序号，不以 CSV 行顺序替代"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "BIGINT",
+          "nullable": false,
+          "null_semantics": "非空；全局有序事件序号，不以 CSV 行顺序替代",
+          "source_type_text": "INTEGER"
+        },
+        {
+          "name": "event_type",
+          "label": "ad_click、product_view、add_to_car",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；ad_click、product_view、add_to_cart、checkout_attempt、inventory_blocked、substitute_click 允许值：ad_click, product_view, add_to_cart, checkout_attempt, inventory_blocked, substitute_click。",
+          "aliases": [
+            "event type",
+            "ad_click、product_view、add_to_car"
+          ],
+          "role": "filter",
+          "aggregation": "none",
+          "unit": "枚举",
+          "nullable": false,
+          "null_semantics": "非空；ad_click、product_view、add_to_cart、checkout_attempt、inventory_blocked、substitute_click",
+          "source_type_text": "TEXT，枚举",
+          "enum_values": [
+            "ad_click",
+            "product_view",
+            "add_to_cart",
+            "checkout_attempt",
+            "inventory_blocked",
+            "substitute_click"
+          ]
+        },
+        {
+          "name": "occurred_at",
+          "label": "事件发生时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；事件发生时间",
+          "aliases": [
+            "occurred at",
+            "事件发生时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；事件发生时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "recorded_at",
+          "label": "首次记录时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；事件首次可知时间",
+          "aliases": [
+            "recorded at",
+            "首次记录时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；事件首次可知时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "session_id",
+          "label": "站内事件必填并指向 sessions",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "站内事件必填并指向 sessions；未落地 ad_click 可空",
+          "aliases": [
+            "session id",
+            "站内事件必填并指向 sessions"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "可空 FK",
+          "nullable": true,
+          "null_semantics": "站内事件必填并指向 sessions；未落地 ad_click 可空",
+          "source_type_text": "TEXT，可空 FK"
+        },
+        {
+          "name": "visitor_id",
+          "label": "访客伪匿名标识",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；可观察访客标识，不是隐含个人需求",
+          "aliases": [
+            "visitor id",
+            "访客伪匿名标识"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；可观察访客标识，不是隐含个人需求",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "campaign_id",
+          "label": "仅 ad_click 填对应投放计划",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "仅 ad_click 填对应投放计划；站内浏览等事件为空",
+          "aliases": [
+            "campaign id",
+            "仅 ad_click 填对应投放计划"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "可空 FK",
+          "nullable": true,
+          "null_semantics": "仅 ad_click 填对应投放计划；站内浏览等事件为空",
+          "source_type_text": "TEXT，可空 FK"
+        },
+        {
+          "name": "sku_id",
+          "label": "适用事件的目标/浏览/尝试商品，指向 sku_catalog",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "适用事件的目标/浏览/尝试商品，指向 sku_catalog",
+          "aliases": [
+            "sku id",
+            "适用事件的目标/浏览/尝试商品，指向 sku_catalog"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "可空 FK",
+          "nullable": true,
+          "null_semantics": "适用事件的目标/浏览/尝试商品，指向 sku_catalog",
+          "source_type_text": "TEXT，可空 FK"
+        },
+        {
+          "name": "click_cost_ex_vat_cents",
+          "label": "单次点击费用不含税欧分",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "仅 ad_click 填计费成本；非点击为空，不混成零成本点击",
+          "aliases": [
+            "click cost ex vat cents",
+            "单次点击费用不含税欧分"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_ex_vat",
+          "nullable": true,
+          "null_semantics": "仅 ad_click 填计费成本；非点击为空，不混成零成本点击",
+          "source_type_text": "INTEGER，不含税欧分"
+        },
+        {
+          "name": "displayed_unit_gross_cents",
+          "label": "适用页面展示或结账事件填当时价格",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "适用页面展示或结账事件填当时价格；不适用为空",
+          "aliases": [
+            "displayed unit gross cents",
+            "适用页面展示或结账事件填当时价格"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_gross",
+          "nullable": true,
+          "null_semantics": "适用页面展示或结账事件填当时价格；不适用为空",
+          "source_type_text": "INTEGER，含税欧分/销售单位"
+        },
+        {
+          "name": "requested_qty",
+          "label": "适用加购/结账事件填请求数量",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "适用加购/结账事件填请求数量；不适用为空",
+          "aliases": [
+            "requested qty",
+            "适用加购/结账事件填请求数量"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "销售单位",
+          "nullable": true,
+          "null_semantics": "适用加购/结账事件填请求数量；不适用为空",
+          "source_type_text": "INTEGER，销售单位"
+        },
+        {
+          "name": "available_qty_observed",
+          "label": "适用库存响应事件填当时可见可售量",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "适用库存响应事件填当时可见可售量；未知/不适用为空；0表示实际不可售",
+          "aliases": [
+            "available qty observed",
+            "适用库存响应事件填当时可见可售量"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "销售单位",
+          "nullable": true,
+          "null_semantics": "适用库存响应事件填当时可见可售量；未知/不适用为空；0表示实际不可售",
+          "source_type_text": "INTEGER，销售单位"
+        },
+        {
+          "name": "failure_reason",
+          "label": "有失败或不可售响应时的业务代码",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "可空；有失败或不可售响应时的业务代码；空不等于成功成交",
+          "aliases": [
+            "failure reason",
+            "有失败或不可售响应时的业务代码"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": true,
+          "null_semantics": "可空；有失败或不可售响应时的业务代码；空不等于成功成交",
+          "source_type_text": "TEXT"
+        }
+      ],
+      "duplicate_risks": [
+        "先按事实粒度和各自时间聚合，再与其他事实表连接；状态和金额必须遵循指标定义。"
+      ]
+    },
+    {
+      "id": "hn10_competitor_prices",
+      "name": "competitor_prices",
+      "label": "可比竞品观测",
+      "database": "homenova_20261015",
+      "domain": "市场观测",
+      "description": "一行是一次观测，数据不是完整市场价格，也不是对方成交记录。价格只在观测和记录已知以后可使用；观察间隔内不允许用未来记录向过去插值。超过明确新鲜度阈值的旧观测应标明过期，本包默认使用 72 小时阈值。包装、规格和运费比较规则要一致。",
+      "business_terms": [
+        "可比竞品观测",
+        "市场观测"
+      ],
+      "grain": "一次可比竞品商品价格观测",
+      "primary_key": [
+        "observation_id"
+      ],
+      "unique_keys": [],
+      "dependency_fields": [
+        "observation_id",
+        "mapped_sku_id",
+        "observed_at",
+        "recorded_at",
+        "collection_status",
+        "comparability_grade",
+        "in_stock_observed"
+      ],
+      "fields": [
+        {
+          "name": "observation_id",
+          "label": "观测标识",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；观测标识",
+          "aliases": [
+            "observation id",
+            "观测标识"
+          ],
+          "role": "identifier",
+          "aggregation": "none",
+          "unit": "PK",
+          "nullable": false,
+          "null_semantics": "非空；观测标识",
+          "source_type_text": "TEXT，PK"
+        },
+        {
+          "name": "competitor_code",
+          "label": "虚构竞品代码",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；虚构竞品代码",
+          "aliases": [
+            "competitor code",
+            "虚构竞品代码"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；虚构竞品代码",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "comparable_product_code",
+          "label": "竞品可比商品代码",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；竞品可比商品代码",
+          "aliases": [
+            "comparable product code",
+            "竞品可比商品代码"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；竞品可比商品代码",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "mapped_sku_id",
+          "label": "对应本店 SKU",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；对应本店 SKU",
+          "aliases": [
+            "mapped sku id",
+            "对应本店 SKU"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "FK",
+          "nullable": false,
+          "null_semantics": "非空；对应本店 SKU",
+          "source_type_text": "TEXT，FK"
+        },
+        {
+          "name": "observed_at",
+          "label": "观测或采集尝试发生时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；观测或采集尝试发生时间",
+          "aliases": [
+            "observed at",
+            "观测或采集尝试发生时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；观测或采集尝试发生时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "competitor_unit_gross_cents",
+          "label": "success 时为正价格",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "success 时为正价格；failed 时为空，不以 0 伪造免费商品",
+          "aliases": [
+            "competitor unit gross cents",
+            "success 时为正价格"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_gross",
+          "nullable": true,
+          "null_semantics": "success 时为正价格；failed 时为空，不以 0 伪造免费商品",
+          "source_type_text": "INTEGER，含税欧分/可比销售单位"
+        },
+        {
+          "name": "shipping_gross_cents",
+          "label": "观察到的竞品运费，0表示明确免运，未知为空",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "可空；观察到的竞品运费，0表示明确免运，未知为空",
+          "aliases": [
+            "shipping gross cents",
+            "观察到的竞品运费，0表示明确免运，未知为空"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "EUR_cents_gross",
+          "nullable": true,
+          "null_semantics": "可空；观察到的竞品运费，0表示明确免运，未知为空",
+          "source_type_text": "INTEGER，含税欧分"
+        },
+        {
+          "name": "in_stock_observed",
+          "label": "已观测有货/无货",
+          "type": "布尔",
+          "sql_type": "BOOLEAN",
+          "description": "可空；已观测有货/无货；failed 时为空，未知不等于缺货",
+          "aliases": [
+            "in stock observed",
+            "已观测有货/无货"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "BOOLEAN",
+          "nullable": true,
+          "null_semantics": "可空；已观测有货/无货；failed 时为空，未知不等于缺货",
+          "source_type_text": "BOOLEAN"
+        },
+        {
+          "name": "comparability_grade",
+          "label": "A为规格包装基本可比，B仅作辅助比较",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；A为规格包装基本可比，B仅作辅助比较",
+          "aliases": [
+            "comparability grade",
+            "A为规格包装基本可比，B仅作辅助比较"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；A为规格包装基本可比，B仅作辅助比较",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "collection_status",
+          "label": "success/failed",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；success/failed；采集失败不代表竞品没有商品",
+          "aliases": [
+            "collection status",
+            "success/failed"
+          ],
+          "role": "filter",
+          "aggregation": "none",
+          "unit": "枚举",
+          "nullable": false,
+          "null_semantics": "非空；success/failed；采集失败不代表竞品没有商品",
+          "source_type_text": "TEXT，枚举"
+        },
+        {
+          "name": "recorded_at",
+          "label": "首次记录时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；本次观测首次可知时间",
+          "aliases": [
+            "recorded at",
+            "首次记录时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；本次观测首次可知时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        }
+      ],
+      "duplicate_risks": [
+        "先按事实粒度和各自时间聚合，再与其他事实表连接；状态和金额必须遵循指标定义。"
+      ]
+    },
+    {
+      "id": "hn10_customer_feedback",
+      "name": "customer_feedback",
+      "label": "投诉、客服处理与评价",
+      "database": "homenova_20261015",
+      "domain": "客户服务与评价",
+      "description": "一行是一条反馈事件，不是一笔订单，也不是一份去重投诉。`complaint_opened` 是客户咨询/投诉根事件，可包含配送查询、安装帮助及售后进度咨询，不全部等价于严重投诉；`complaint_replied` 是客服回复；`complaint_resolved` 是解决记录；`review_submitted` 是评价。客服回复与解决事件直接引用投诉根事件，继承相同订单、商品范围和问题分类；不能把跟进回复计作新投诉。\n\n订单级事件的 `order_item_id` 为空，不强行分配给所有 SKU；商品级事件必须指向属于该订单的商品行。已发货但尚未送达的订单可以发生物流查询等投诉；商品或订单评价只可在实际签收后产生。未收到评价不等于 0 分。",
+      "business_terms": [
+        "投诉、客服处理与评价",
+        "客户服务与评价"
+      ],
+      "grain": "一次类型明确的投诉、客服回复、解决或评价事件",
+      "primary_key": [
+        "feedback_event_id"
+      ],
+      "unique_keys": [],
+      "dependency_fields": [
+        "feedback_event_id",
+        "parent_event_id",
+        "order_id",
+        "order_item_id",
+        "event_type",
+        "occurred_at",
+        "recorded_at",
+        "issue_code",
+        "status_code",
+        "rating"
+      ],
+      "fields": [
+        {
+          "name": "feedback_event_id",
+          "label": "反馈事件标识",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；反馈事件标识",
+          "aliases": [
+            "feedback event id",
+            "反馈事件标识"
+          ],
+          "role": "identifier",
+          "aggregation": "none",
+          "unit": "PK",
+          "nullable": false,
+          "null_semantics": "非空；反馈事件标识",
+          "source_type_text": "TEXT，PK"
+        },
+        {
+          "name": "parent_event_id",
+          "label": "投诉根事件与独立评价为空",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "投诉根事件与独立评价为空；客服回复和解决记录必填，直接指向同订单同范围的 complaint_opened",
+          "aliases": [
+            "parent event id",
+            "投诉根事件与独立评价为空"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "可空自引用 FK",
+          "nullable": true,
+          "null_semantics": "投诉根事件与独立评价为空；客服回复和解决记录必填，直接指向同订单同范围的 complaint_opened",
+          "source_type_text": "TEXT，可空自引用 FK"
+        },
+        {
+          "name": "order_id",
+          "label": "指向业务订单，不按评论文本猜订单",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；指向业务订单，不按评论文本猜订单",
+          "aliases": [
+            "order id",
+            "指向业务订单，不按评论文本猜订单"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "FK",
+          "nullable": false,
+          "null_semantics": "非空；指向业务订单，不按评论文本猜订单",
+          "source_type_text": "TEXT，FK"
+        },
+        {
+          "name": "order_item_id",
+          "label": "商品级必填，且商品行属于 order_id",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "商品级必填，且商品行属于 order_id；订单级为空，不表示关联损坏",
+          "aliases": [
+            "order item id",
+            "商品级必填，且商品行属于 order_id"
+          ],
+          "role": "foreign_key",
+          "aggregation": "none",
+          "unit": "可空 FK",
+          "nullable": true,
+          "null_semantics": "商品级必填，且商品行属于 order_id；订单级为空，不表示关联损坏",
+          "source_type_text": "TEXT，可空 FK"
+        },
+        {
+          "name": "event_type",
+          "label": "complaint_opened、complaint_repli",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；complaint_opened、complaint_replied、complaint_resolved、review_submitted 允许值：complaint_opened, complaint_replied, complaint_resolved, review_submitted。",
+          "aliases": [
+            "event type",
+            "complaint_opened、complaint_repli"
+          ],
+          "role": "filter",
+          "aggregation": "none",
+          "unit": "枚举",
+          "nullable": false,
+          "null_semantics": "非空；complaint_opened、complaint_replied、complaint_resolved、review_submitted",
+          "source_type_text": "TEXT，枚举",
+          "enum_values": [
+            "complaint_opened",
+            "complaint_replied",
+            "complaint_resolved",
+            "review_submitted"
+          ]
+        },
+        {
+          "name": "occurred_at",
+          "label": "反馈、回复、解决或评价实际发生时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；反馈、回复、解决或评价实际发生时间",
+          "aliases": [
+            "occurred at",
+            "反馈、回复、解决或评价实际发生时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；反馈、回复、解决或评价实际发生时间",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "recorded_at",
+          "label": "首次记录时间",
+          "type": "日期",
+          "sql_type": "TIMESTAMPTZ",
+          "description": "非空；事件首次可知时间，不早于 occurred_at；发生及记录均须早于本包观察截点",
+          "aliases": [
+            "recorded at",
+            "首次记录时间"
+          ],
+          "role": "time",
+          "aggregation": "none",
+          "unit": "TIMESTAMPTZ",
+          "nullable": false,
+          "null_semantics": "非空；事件首次可知时间，不早于 occurred_at；发生及记录均须早于本包观察截点",
+          "source_type_text": "UTC_TIMESTAMP"
+        },
+        {
+          "name": "issue_code",
+          "label": "delivery_query、installation_help",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；delivery_query、installation_help、compatibility、product_condition、refund_query、order_experience 或 product_experience；为业务记录分类，不是已证实的唯一原因",
+          "aliases": [
+            "issue code",
+            "delivery_query、installation_help"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；delivery_query、installation_help、compatibility、product_condition、refund_query、order_experience 或 product_experience；为业务记录分类，不是已证实的唯一原因",
+          "source_type_text": "TEXT"
+        },
+        {
+          "name": "rating",
+          "label": "仅 review_submitted 填评分，其他事件为空",
+          "type": "整数",
+          "sql_type": "BIGINT",
+          "description": "仅 review_submitted 填评分，其他事件为空；3分、中低分与高分均属于实际评价，不能把未评价填0",
+          "aliases": [
+            "rating",
+            "仅 review_submitted 填评分，其他事件为空"
+          ],
+          "role": "metric",
+          "aggregation": "none",
+          "unit": "1—5分",
+          "nullable": true,
+          "null_semantics": "仅 review_submitted 填评分，其他事件为空；3分、中低分与高分均属于实际评价，不能把未评价填0",
+          "source_type_text": "INTEGER，1—5分"
+        },
+        {
+          "name": "status_code",
+          "label": "complaint_opened 对应 open",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "complaint_opened 对应 open；complaint_replied 对应 in_progress；complaint_resolved 对应 resolved；review_submitted 对应 published 允许值：open, in_progress, resolved, published。",
+          "aliases": [
+            "status code",
+            "complaint_opened 对应 open"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "按类型枚举",
+          "nullable": false,
+          "null_semantics": "complaint_opened 对应 open；complaint_replied 对应 in_progress；complaint_resolved 对应 resolved；review_submitted 对应 published",
+          "source_type_text": "TEXT，按类型枚举",
+          "enum_values": [
+            "open",
+            "in_progress",
+            "resolved",
+            "published"
+          ]
+        },
+        {
+          "name": "short_text",
+          "label": "顾客反馈或客服处理简述，不作为账务金额或确定性因果证明",
+          "type": "文本",
+          "sql_type": "VARCHAR",
+          "description": "非空；顾客反馈或客服处理简述，不作为账务金额或确定性因果证明",
+          "aliases": [
+            "short text",
+            "顾客反馈或客服处理简述，不作为账务金额或确定性因果证明"
+          ],
+          "role": "dimension",
+          "aggregation": "none",
+          "unit": "VARCHAR",
+          "nullable": false,
+          "null_semantics": "非空；顾客反馈或客服处理简述，不作为账务金额或确定性因果证明",
+          "source_type_text": "TEXT"
+        }
+      ],
+      "duplicate_risks": [
+        "先按事实粒度和各自时间聚合，再与其他事实表连接；状态和金额必须遵循指标定义。"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "id": "hn10_price_sku",
+      "left_table": "hn10_sku_catalog",
+      "left_table_name": "sku_catalog",
+      "left_field": "sku_id",
+      "right_table": "hn10_price_intervals",
+      "right_table_name": "price_intervals",
+      "right_field": "sku_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:N",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": false,
+      "description": "价格区间按SKU与有效时间唯一匹配；优先用订单行price_interval_id关联。",
+      "duplicate_risk": "父事实连接多条子事实会复制父金额，应先聚合/去重。"
+    },
+    {
+      "id": "hn10_campaign_sku",
+      "left_table": "hn10_sku_catalog",
+      "left_table_name": "sku_catalog",
+      "left_field": "sku_id",
+      "right_table": "hn10_campaigns",
+      "right_table_name": "campaigns",
+      "right_field": "target_sku_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:N",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": false,
+      "description": "计划目标SKU与购物篮SKU可以不同。",
+      "duplicate_risk": "父事实连接多条子事实会复制父金额，应先聚合/去重。"
+    },
+    {
+      "id": "hn10_ad_campaign",
+      "left_table": "hn10_campaigns",
+      "left_table_name": "campaigns",
+      "left_field": "campaign_id",
+      "right_table": "hn10_ad_daily",
+      "right_table_name": "ad_daily",
+      "right_field": "campaign_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:N",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": false,
+      "description": "广告日记录联合主键为campaign_id与stat_local_date。",
+      "duplicate_risk": "父事实连接多条子事实会复制父金额，应先聚合/去重。"
+    },
+    {
+      "id": "hn10_events_campaign",
+      "left_table": "hn10_campaigns",
+      "left_table_name": "campaigns",
+      "left_field": "campaign_id",
+      "right_table": "hn10_visit_events",
+      "right_table_name": "visit_events",
+      "right_field": "campaign_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:N",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": true,
+      "description": "仅ad_click填写campaign_id；非点击行为不作广告计划归因。",
+      "duplicate_risk": "父事实连接多条子事实会复制父金额，应先聚合/去重。"
+    },
+    {
+      "id": "hn10_events_session",
+      "left_table": "hn10_sessions",
+      "left_table_name": "sessions",
+      "left_field": "session_id",
+      "right_table": "hn10_visit_events",
+      "right_table_name": "visit_events",
+      "right_field": "session_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:N",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": true,
+      "description": "未落地ad_click允许session_id为空；站内事件必须有会话。",
+      "duplicate_risk": "父事实连接多条子事实会复制父金额，应先聚合/去重。"
+    },
+    {
+      "id": "hn10_session_source_click",
+      "left_table": "hn10_visit_events",
+      "left_table_name": "visit_events",
+      "left_field": "event_id",
+      "right_table": "hn10_sessions",
+      "right_table_name": "sessions",
+      "right_field": "source_click_event_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:0..1",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": true,
+      "description": "来源点击必须event_type=ad_click且不晚于会话开始；非付费会话为空。",
+      "duplicate_risk": "可空子事实不能误当每个父对象都有记录。"
+    },
+    {
+      "id": "hn10_events_sku",
+      "left_table": "hn10_sku_catalog",
+      "left_table_name": "sku_catalog",
+      "left_field": "sku_id",
+      "right_table": "hn10_visit_events",
+      "right_table_name": "visit_events",
+      "right_field": "sku_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:N",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": true,
+      "description": "行为适用的观察/目标SKU，不等于一笔已成交订单。",
+      "duplicate_risk": "父事实连接多条子事实会复制父金额，应先聚合/去重。"
+    },
+    {
+      "id": "hn10_orders_session",
+      "left_table": "hn10_sessions",
+      "left_table_name": "sessions",
+      "left_field": "session_id",
+      "right_table": "hn10_orders",
+      "right_table_name": "orders",
+      "right_field": "checkout_session_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:0..1",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": false,
+      "description": "checkout_session_id在订单中唯一，按该会话计算购买转化。",
+      "duplicate_risk": "可空子事实不能误当每个父对象都有记录。"
+    },
+    {
+      "id": "hn10_orders_attributed_click",
+      "left_table": "hn10_visit_events",
+      "left_table_name": "visit_events",
+      "left_field": "event_id",
+      "right_table": "hn10_orders",
+      "right_table_name": "orders",
+      "right_field": "attributed_click_event_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:N",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": true,
+      "description": "同可连接访客，点击不晚于下单且距capture不超过7×24小时，整单至多归一次。",
+      "duplicate_risk": "父事实连接多条子事实会复制父金额，应先聚合/去重。"
+    },
+    {
+      "id": "hn10_orders_attributed_campaign",
+      "left_table": "hn10_campaigns",
+      "left_table_name": "campaigns",
+      "left_field": "campaign_id",
+      "right_table": "hn10_orders",
+      "right_table_name": "orders",
+      "right_field": "attributed_campaign_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:N",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": true,
+      "description": "冗余归因计划必须等于归因点击的计划；自然回访不覆盖有效付费点击。",
+      "duplicate_risk": "父事实连接多条子事实会复制父金额，应先聚合/去重。"
+    },
+    {
+      "id": "hn10_order_items_order",
+      "left_table": "hn10_orders",
+      "left_table_name": "orders",
+      "left_field": "order_id",
+      "right_table": "hn10_order_items",
+      "right_table_name": "order_items",
+      "right_field": "order_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:N",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": false,
+      "description": "订单头金额连接明细后不可逐行重复求和。",
+      "duplicate_risk": "父事实连接多条子事实会复制父金额，应先聚合/去重。"
+    },
+    {
+      "id": "hn10_sku_order_items",
+      "left_table": "hn10_sku_catalog",
+      "left_table_name": "sku_catalog",
+      "left_field": "sku_id",
+      "right_table": "hn10_order_items",
+      "right_table_name": "order_items",
+      "right_field": "sku_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:N",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": false,
+      "description": "同订单同SKU一行；套装数量按销售单位计。",
+      "duplicate_risk": "父事实连接多条子事实会复制父金额，应先聚合/去重。"
+    },
+    {
+      "id": "hn10_items_price",
+      "left_table": "hn10_price_intervals",
+      "left_table_name": "price_intervals",
+      "left_field": "price_interval_id",
+      "right_table": "hn10_order_items",
+      "right_table_name": "order_items",
+      "right_field": "price_interval_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:N",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": false,
+      "description": "价格在下单时锁定；SKU与下单时间须符合价格区间。",
+      "duplicate_risk": "父事实连接多条子事实会复制父金额，应先聚合/去重。"
+    },
+    {
+      "id": "hn10_payments_order",
+      "left_table": "hn10_orders",
+      "left_table_name": "orders",
+      "left_field": "order_id",
+      "right_table": "hn10_payments",
+      "right_table_name": "payments",
+      "right_field": "order_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:N",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": false,
+      "description": "支付尝试可多次，成功captured至多一次；失败不计金额和GMV。",
+      "duplicate_risk": "父事实连接多条子事实会复制父金额，应先聚合/去重。"
+    },
+    {
+      "id": "hn10_procurement_sku",
+      "left_table": "hn10_sku_catalog",
+      "left_table_name": "sku_catalog",
+      "left_field": "sku_id",
+      "right_table": "hn10_procurements",
+      "right_table_name": "procurements",
+      "right_field": "sku_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:N",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": false,
+      "description": "purchase_reference不是唯一批次键，每procurement_id单次验收。",
+      "duplicate_risk": "父事实连接多条子事实会复制父金额，应先聚合/去重。"
+    },
+    {
+      "id": "hn10_sku_inventory",
+      "left_table": "hn10_sku_catalog",
+      "left_table_name": "sku_catalog",
+      "left_field": "sku_id",
+      "right_table": "hn10_inventory_movements",
+      "right_table_name": "inventory_movements",
+      "right_field": "sku_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:N",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": false,
+      "description": "库存按SKU、仓、occurred_at与event_seq累计，不能跨天加库存余额。",
+      "duplicate_risk": "父事实连接多条子事实会复制父金额，应先聚合/去重。"
+    },
+    {
+      "id": "hn10_movement_order_item",
+      "left_table": "hn10_order_items",
+      "left_table_name": "order_items",
+      "left_field": "order_item_id",
+      "right_table": "hn10_inventory_movements",
+      "right_table_name": "inventory_movements",
+      "right_field": "order_item_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:N",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": true,
+      "description": "reserve/release/ship引用订单行；支付不再次扣库。",
+      "duplicate_risk": "父事实连接多条子事实会复制父金额，应先聚合/去重。"
+    },
+    {
+      "id": "hn10_procurement_inventory",
+      "left_table": "hn10_procurements",
+      "left_table_name": "procurements",
+      "left_field": "procurement_id",
+      "right_table": "hn10_inventory_movements",
+      "right_table_name": "inventory_movements",
+      "right_field": "procurement_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:0..1",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": true,
+      "description": "仅receipt引用采购批次，验收数量与入库量一致。",
+      "duplicate_risk": "可空子事实不能误当每个父对象都有记录。"
+    },
+    {
+      "id": "hn10_shipments_order",
+      "left_table": "hn10_orders",
+      "left_table_name": "orders",
+      "left_field": "order_id",
+      "right_table": "hn10_shipments",
+      "right_table_name": "shipments",
+      "right_field": "order_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:0..1",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": false,
+      "description": "全订单一次发货；发货才确认收入及COGS。",
+      "duplicate_risk": "可空子事实不能误当每个父对象都有记录。"
+    },
+    {
+      "id": "hn10_shipment_inventory",
+      "left_table": "hn10_shipments",
+      "left_table_name": "shipments",
+      "left_field": "shipment_id",
+      "right_table": "hn10_inventory_movements",
+      "right_table_name": "inventory_movements",
+      "right_field": "shipment_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:N",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": true,
+      "description": "ship逐商品行扣在库与预占，发货单费用不可重复到各库存行。",
+      "duplicate_risk": "父事实连接多条子事实会复制父金额，应先聚合/去重。"
+    },
+    {
+      "id": "hn10_refunds_item",
+      "left_table": "hn10_order_items",
+      "left_table_name": "order_items",
+      "left_field": "order_item_id",
+      "right_table": "hn10_refunds",
+      "right_table_name": "refunds",
+      "right_field": "order_item_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:N",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": false,
+      "description": "多次部分退款按原明细限额；refund_id可有多行，不能重复整笔运费。",
+      "duplicate_risk": "父事实连接多条子事实会复制父金额，应先聚合/去重。"
+    },
+    {
+      "id": "hn10_refunds_payment",
+      "left_table": "hn10_payments",
+      "left_table_name": "payments",
+      "left_field": "payment_id",
+      "right_table": "hn10_refunds",
+      "right_table_name": "refunds",
+      "right_field": "payment_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:N",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": false,
+      "description": "退款引用成功captured支付，不写负支付重复冲减。",
+      "duplicate_risk": "父事实连接多条子事实会复制父金额，应先聚合/去重。"
+    },
+    {
+      "id": "hn10_refund_inventory",
+      "left_table": "hn10_refunds",
+      "left_table_name": "refunds",
+      "left_field": "refund_line_id",
+      "right_table": "hn10_inventory_movements",
+      "right_table_name": "inventory_movements",
+      "right_field": "refund_line_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:0..1",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": true,
+      "description": "仅实际退回验收可再售产生return_restock，资金完成不自动补库。",
+      "duplicate_risk": "可空子事实不能误当每个父对象都有记录。"
+    },
+    {
+      "id": "hn10_competitor_sku",
+      "left_table": "hn10_sku_catalog",
+      "left_table_name": "sku_catalog",
+      "left_field": "sku_id",
+      "right_table": "hn10_competitor_prices",
+      "right_table_name": "competitor_prices",
+      "right_field": "mapped_sku_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:N",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": false,
+      "description": "仅用当时已知、未过期、规格包装可比的观测；failed价格为空。",
+      "duplicate_risk": "父事实连接多条子事实会复制父金额，应先聚合/去重。"
+    },
+    {
+      "id": "hn10_feedback_order",
+      "left_table": "hn10_orders",
+      "left_table_name": "orders",
+      "left_field": "order_id",
+      "right_table": "hn10_customer_feedback",
+      "right_table_name": "customer_feedback",
+      "right_field": "order_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:N",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": false,
+      "description": "根咨询/投诉、回复、解决、评价多行不可放大订单或支付金额。",
+      "duplicate_risk": "父事实连接多条子事实会复制父金额，应先聚合/去重。"
+    },
+    {
+      "id": "hn10_feedback_item",
+      "left_table": "hn10_order_items",
+      "left_table_name": "order_items",
+      "left_field": "order_item_id",
+      "right_table": "hn10_customer_feedback",
+      "right_table_name": "customer_feedback",
+      "right_field": "order_item_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:N",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": true,
+      "description": "订单级反馈商品键为空，不强行分配到所有SKU；商品行必须属于相同订单。",
+      "duplicate_risk": "父事实连接多条子事实会复制父金额，应先聚合/去重。"
+    },
+    {
+      "id": "hn10_feedback_parent",
+      "left_table": "hn10_customer_feedback",
+      "left_table_name": "customer_feedback",
+      "left_field": "feedback_event_id",
+      "right_table": "hn10_customer_feedback",
+      "right_table_name": "customer_feedback",
+      "right_field": "parent_event_id",
+      "relation_type": "foreign_key",
+      "cardinality": "1:N",
+      "cardinality_basis": "declared_logical_contract",
+      "child_key_nullable": true,
+      "description": "回复与解决直接引用complaint_opened根，并继承order/item/issue；非根跟进不新增投诉。",
+      "duplicate_risk": "父事实连接多条子事实会复制父金额，应先聚合/去重。"
+    }
+  ],
+  "signature": "1cc0994ac56f8eb8e67a7708ee5fead6b012f2bf3e6ce85b011c12672a30997f"
+}
