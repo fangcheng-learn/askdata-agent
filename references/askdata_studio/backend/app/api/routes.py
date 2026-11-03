@@ -357,7 +357,8 @@ def start_workbench_run(payload: WorkbenchRequest, user: AuthUser = Depends(requ
     try:
         return workbench_runs.start(user.user_id, payload.query, payload.session_id, workspace, options,
             lambda: service.clarify(payload.resume_task_id, '__continue__', user_id=user.user_id)
-            if payload.resume_task_id else service.submit(payload.query, payload.session_id, workspace, user.user_id))
+            if payload.resume_task_id else service.submit(payload.query, payload.session_id, workspace, user.user_id),
+            count_analysis=not bool(payload.resume_task_id))
     except ValueError as exc:
         raise HTTPException(409, str(exc)) from exc
 

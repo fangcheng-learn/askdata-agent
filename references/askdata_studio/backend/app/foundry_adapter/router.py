@@ -18,6 +18,7 @@ from ..api.routes import (service, auth_service, workbench_runs, workbench_optio
                           start_workbench_run, WorkbenchRequest)
 from ..config import BASE_DIR
 from ..models import QueryResult
+from ..security import public_demo
 from .store import UIStore
 from .projection import (now, artifacts, conversation, event, encode_event, delivery_events, trace_dag)
 
@@ -70,7 +71,7 @@ def authenticate(request, *, mutation=False):
     if not user:raise HTTPException(401,'请登录经营分析账号')
     if mutation:
         origin=request.headers.get('origin')
-        if origin and origin not in {'http://127.0.0.1:5174','http://localhost:5174','http://127.0.0.1:5175','http://localhost:5175'}:
+        if origin and origin not in public_demo.allowed_origins():
             raise HTTPException(403,'请求来源不受信任')
     return user
 
@@ -355,10 +356,22 @@ async def rest(request:Request,path:str):
     try:
         raw=await request.body()
         body=json.loads(raw) if raw and request.headers.get('content-type','').startswith('application/json') else {}
-        if path=='auth/status':return success({'registrationEnabled':False,'publicBaseUrl':'http://127.0.0.1:5174'})
+        if path=='auth/status':return success({'registrationEnabled':False,
+            'publicBaseUrl':public_demo.public_origin(),'publicDemo':public_demo.enabled()})
+        if path=='auth/guest' and request.method=='POST':
+            if not public_demo.enabled():raise HTTPException(404,'访客试用未启用')
+            if request.headers.get('origin') not in public_demo.allowed_origins():
+                raise HTTPException(403,'请求来源不受信任')
+            token,user=auth_service.guest_login(request.cookies.get('ip_session'))
+            response=success(identity(user))
+            response.set_cookie('ip_session',token,httponly=True,secure=True,
+                                samesite='lax',path='/',max_age=30*86400)
+            response.set_cookie('ip_csrf',secrets.token_urlsafe(24),secure=True,
+                                samesite='lax',path='/',max_age=30*86400)
+            return response
         if path=='auth/login' and request.method=='POST':
             origin=request.headers.get('origin')
-            if origin and origin not in {'http://127.0.0.1:5174','http://localhost:5174','http://127.0.0.1:5175','http://localhost:5175'}:raise HTTPException(403,'请求来源不受信任')
+            if origin and origin not in public_demo.allowed_origins():raise HTTPException(403,'请求来源不受信任')
             login=auth_service.login(str(body.get('email') or body.get('username') or ''),str(body.get('password') or ''))
             if not login:raise HTTPException(401,'账号或密码不正确')
             token,user=login;response=success(identity(user))
@@ -440,7 +453,7 @@ def _prepare_run(user, body):
             raise HTTPException(422,'请回复上轮列出的一个选项名称，以继续确认口径')
         response = choice['id'] if choice else query
         job=workbench_runs.start(user.user_id,query,session['backendSession'],workspace,options,
-            lambda:service.clarify(last['task_id'],response,user_message=query,user_id=user.user_id))
+            lambda:service.clarify(last['task_id'],response,user_message=query,user_id=user.user_id), count_analysis=False)
     else:
         payload=WorkbenchRequest(query=query,session_id=session['backendSession'],workspace=workspace,options=options,resume_task_id=resume)
         job=start_workbench_run(payload,user)

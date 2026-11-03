@@ -12,6 +12,10 @@ from .demo_data import seed_demo_data
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    from .security import public_demo
+    if public_demo.enabled():
+        public_demo.public_origin()
+        public_demo.signing_key()
     database_dir = BASE_DIR / "data" / "databases" / "askdata_mock"
     if not database_dir.exists() or not any(database_dir.glob("*.csv")):
         seed_demo_data(database_dir=database_dir)

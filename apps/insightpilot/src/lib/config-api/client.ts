@@ -234,8 +234,12 @@ export const configApi = {
     return configApi.getMe();
   },
 
-  getAuthStatus(): Promise<{ publicBaseUrl: string; registrationEnabled: boolean }> {
-    return requestEnvelope<{ publicBaseUrl: string; registrationEnabled: boolean }>("/api/v1/auth/status");
+  loginGuest(): Promise<MeResponseDto> {
+    return requestEnvelope<MeResponseDto>("/api/v1/auth/guest", { method: "POST" });
+  },
+
+  getAuthStatus(): Promise<{ publicBaseUrl: string; registrationEnabled: boolean; publicDemo?: boolean }> {
+    return requestEnvelope<{ publicBaseUrl: string; registrationEnabled: boolean; publicDemo?: boolean }>("/api/v1/auth/status");
   },
 
   getCapabilities(): Promise<BackendCapabilitiesResponse> {

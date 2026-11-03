@@ -1,7 +1,13 @@
 from __future__ import annotations
 
 import secrets
+import hashlib
+import hmac
+import time
+import re
 from dataclasses import dataclass
+
+from . import public_demo
 
 
 @dataclass(frozen=True)
@@ -42,6 +48,8 @@ class AuthService:
         self._tokens: dict[str, AuthUser] = {}
 
     def login(self, username: str, password: str) -> tuple[str, AuthUser] | None:
+        if public_demo.enabled():
+            return None
         account = self.ACCOUNTS.get(username.strip())
         if not account or not secrets.compare_digest(str(account["password"]), password):
             return None
@@ -50,12 +58,44 @@ class AuthService:
         self._tokens[token] = user
         return token, user
 
+    def guest_login(self, existing: str | None = None) -> tuple[str, AuthUser]:
+        if not public_demo.enabled():
+            raise PermissionError("访客试用未启用")
+        user = self.authenticate("Bearer " + existing) if existing else None
+        visitor_id = user.user_id if user else "visitor_" + secrets.token_hex(16)
+        # Persist identity across restarts without persisting credentials in the image.
+        expires = int(time.time()) + 30 * 86400
+        body = f"{visitor_id}.{expires}"
+        signature = hmac.new(public_demo.signing_key(), body.encode(), hashlib.sha256).hexdigest()
+        user = AuthUser(visitor_id, visitor_id, "试用访客", "visitor")
+        self._register_guest(user)
+        return body + "." + signature, user
+
+    @staticmethod
+    def _register_guest(user: AuthUser) -> None:
+        from .access_control import AccessController
+        AccessController.USER_ROLES[user.user_id] = ("visitor",)
+
     def authenticate(self, authorization: str | None) -> AuthUser | None:
         if not authorization:
             return None
         scheme, _, token = authorization.partition(" ")
         if scheme.lower() != "bearer" or not token:
             return None
+        if public_demo.enabled():
+            parts = token.split(".")
+            if len(parts) != 3 or not re.fullmatch(r"visitor_[0-9a-f]{32}", parts[0]):
+                return None
+            visitor_id, expiry, signature = parts
+            if not re.fullmatch(r"[0-9]{1,12}", expiry) or int(expiry) <= time.time():
+                return None
+            expected = hmac.new(public_demo.signing_key(),
+                                (visitor_id + "." + expiry).encode(), hashlib.sha256).hexdigest()
+            if not hmac.compare_digest(expected, signature):
+                return None
+            user = AuthUser(visitor_id, visitor_id, "试用访客", "visitor")
+            self._register_guest(user)
+            return user
         return self._tokens.get(token)
 
     def logout(self, authorization: str | None) -> None:

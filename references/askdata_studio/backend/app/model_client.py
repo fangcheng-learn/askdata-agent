@@ -115,6 +115,11 @@ class ModelClient:
         return sorted(output, key=lambda item: item[1], reverse=True)
 
     def _post(self, url: str, payload: dict[str, Any]) -> dict[str, Any]:
+        from .security import public_demo
+        from .security import trial_quota
+        if public_demo.enabled():
+            kind = "chat" if url == self.config.chat_url else "embedding" if url == self.config.embeddings_url else "rerank"
+            payload = trial_quota.prepare(payload, kind, url)
         from .workbench_runtime import check_execution
         node = current_budget.get().model_node if current_budget.get() else 'entry'
         labels = {'preprocess': '正在理解问题', 'entry': '正在理解问题', 'react': '正在分析经营变化',
@@ -199,11 +204,14 @@ class ModelClient:
             trace_status = 'not_sent'
             trace_http_status = None
             trace_error_type = None
+            trial_ticket = None
             try:
                 if budget:
                     budget.check()
                     request_timeout = min(request_timeout, budget.remaining())
                     audit['timeout_seconds'] = request_timeout
+                if public_demo.enabled():
+                    trial_ticket = trial_quota.reserve(payload, kind)
                 request_attempted = True
                 trace_status = 'started'
                 with urllib.request.urlopen(request, timeout=request_timeout) as response:
@@ -224,6 +232,8 @@ class ModelClient:
                         response_body = raw_response.decode('utf-8', errors='replace')
                         result = json.loads(raw_response.decode("utf-8"))
                     trace_status = 'success'
+                    if trial_ticket:
+                        trial_quota.settle(trial_ticket, result.get("usage"))
                     if audit is not None:
                         usage = result.get("usage")
                         # Public accounting stays numeric. Opt-in full bodies

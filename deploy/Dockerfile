@@ -24,6 +24,6 @@ COPY data/homenova_phase_e/public_semantics ./data/homenova_phase_e/public_seman
 COPY deploy/start.py ./deploy/start.py
 RUN mkdir -p references/askdata_studio/backend/data && chown -R app:app /app
 USER app
-ENV PORT=10000 API_PROXY_TARGET=http://127.0.0.1:8001
+ENV PORT=10000 API_PROXY_TARGET=http://127.0.0.1:8001 NODE_OPTIONS=--max-old-space-size=192 INSIGHTPILOT_PUBLIC_DEMO=1
 EXPOSE 10000
 CMD ["python", "deploy/start.py"]

@@ -168,6 +168,11 @@ class DuckDbEngine:
                         raise ValueError("HomeNova快照必须只含公开的十五张业务表")
                     connection = duckdb.connect(":memory:")
                     try:
+                        from ..security import public_demo
+                        if public_demo.enabled():
+                            connection.execute("SET memory_limit='128MB'")
+                            connection.execute("SET threads=1")
+                            connection.execute("SET max_temp_directory_size='512MB'")
                         for table in tables:
                             name = str(table.get("name") or table["id"])
                             if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):

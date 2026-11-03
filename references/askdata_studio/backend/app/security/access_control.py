@@ -5,6 +5,7 @@ from typing import Any
 
 from ..database import SCHEMA
 from ..homenova import is_homenova
+from . import public_demo
 
 
 ALL_DATABASES = frozenset(str(table.get("database") or "askdata_mock") for table in SCHEMA)
@@ -86,6 +87,12 @@ class AccessController:
         databases: set[str] = set()
         tables: set[str] = set()
         for role in roles:
+            if role == "visitor":
+                if public_demo.enabled():
+                    databases.add(public_demo.DATASOURCE)
+                    tables.update(str(t['id']) for t in SCHEMA
+                                  if t.get('database') == public_demo.DATASOURCE)
+                continue
             policy = self.ROLE_POLICIES[role]
             databases.update(policy["databases"])
             tables.update(policy["tables"])

@@ -93,7 +93,8 @@ class WorkbenchRuns:
             return [self.read(v['id'], owner) for v in sorted(items, key=lambda v: v['created_at'], reverse=True)[:100]]
 
     def start(self, owner: str, query: str, session_id: str, workspace: dict,
-              options: dict, execute: Callable[[], Any]) -> dict:
+              options: dict, execute: Callable[[], Any], *, count_analysis: bool = True) -> dict:
+        from .security import public_demo, trial_quota
         with self.lock:
             if any(v['owner'] == owner and v['status'] == 'stopping' for v in self.records.values()):
                 raise ValueError('上一次分析已停止调度，正在等待已发送的调用结束，请稍后再提交')
@@ -134,6 +135,7 @@ class WorkbenchRuns:
 
         def work():
             token = current_execution.set(control)
+            trial_token = trial_quota.active_run.set(run_id) if public_demo.enabled() else None
             try:
                 control.check()
                 result = execute()
@@ -146,13 +148,29 @@ class WorkbenchRuns:
                     item.update(status='stopped' if control.cancelled.is_set() else 'failed',
                                 stage='已停止' if control.cancelled.is_set() else '分析失败', error=str(exc))
             finally:
+                if trial_token is not None:
+                    trial_quota.active_run.reset(trial_token)
+                    try:
+                        trial_quota.finish_run(run_id)
+                    except trial_quota.TrialLimit:
+                        pass  # The persisted lease expires; never clear quotas locally.
                 current_execution.reset(token)
                 with self.lock:
                     item['finished_at'] = datetime.now(timezone.utc).isoformat()
                     finish_phase('completed' if item['status'] == 'completed' else 'failed')
                     self.controls.pop(run_id, None)
                     self._save(item)
-        Thread(target=work, daemon=True, name='analysis-' + run_id[:8]).start()
+        try:
+            if public_demo.enabled():
+                trial_quota.begin_run(run_id, owner, count_analysis=count_analysis)
+            Thread(target=work, daemon=True, name='analysis-' + run_id[:8]).start()
+        except Exception:
+            with self.lock:
+                self.controls.pop(run_id, None)
+                item.update(status='failed', stage='未开始分析', error='本次分析未启动',
+                            finished_at=datetime.now(timezone.utc).isoformat())
+                self._save(item)
+            raise
         return self.read(run_id, owner)
 
     def hide_session(self, owner: str, datasource: str, session_id: str) -> None:
