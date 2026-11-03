@@ -2,8 +2,8 @@
 
 Status: deployed on Render Free at https://insightpilot-demo.onrender.com.
 Cloud health, guest login, independent visitor histories and a real SQL analysis
-passed. Report continuation testing found a missing single-query evidence catalog;
-the fix has offline coverage and is awaiting cloud verification.
+passed. After fixing the single-query evidence catalog, a fresh visitor completed
+a real query followed by report generation from the saved results, without new SQL.
 
 The container packages the Next.js standalone server, Python API, and public
 HomeNova snapshots. Next.js listens on `PORT` (default 10000) and proxies to the
@@ -110,3 +110,8 @@ upload the developer's existing task history as the deployment database.
   result selection when no catalog exists; owner/source checks remain intact.
 - 75 focused offline regressions passed after that fix, including saved-result
   continuation and rejection of another visitor's evidence.
+
+- Post-deployment roundtrip passed on commit `eb17d85`: a new visitor completed
+  the June/July metric query in 214.1 seconds, then generated a report from those
+  saved results in 36.3 seconds. The report phase executed no additional SQL.
+  Health remained responsive while analysis ran.
