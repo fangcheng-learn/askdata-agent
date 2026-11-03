@@ -124,4 +124,7 @@ upload the developer's existing task history as the deployment database.
   Health remained responsive while analysis ran.
 
 - Administrator/guest login update: 30 focused backend authentication, quota and
-  adapter checks passed; Next.js production build passed. Cloud verification pending.
+  adapter checks passed; Next.js production build passed. Cloud verification passed
+  on `b9537cb`: administrator authentication, secure cookies, independent guest
+  identity/history, default-password rejection and logout revocation. Both login
+  modes were verified on the live page.
