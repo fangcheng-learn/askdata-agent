@@ -8,7 +8,8 @@
     "model traces",
     "private evaluations",
     "build caches",
-    "unrelated upstream applications"
+    "unrelated upstream applications",
+    "Personal interview preparation document (retained locally)"
   ],
   "files": [
     {
@@ -1834,12 +1835,6 @@
       "bytes": 5281,
       "sha256": "ec00b7760d4c7d93a745777dfe2cbe0e26fb9abb7826fafb7f7527a04a799c22",
       "repository_sha256": "ec00b7760d4c7d93a745777dfe2cbe0e26fb9abb7826fafb7f7527a04a799c22"
-    },
-    {
-      "path": "docs/homenova_project_overview_and_harness_design.md",
-      "bytes": 22583,
-      "sha256": "3a2103461e8440ed8b7afb7b6f7b971d040b30bc3be12fcdcc41af63466934c5",
-      "repository_sha256": "3a2103461e8440ed8b7afb7b6f7b971d040b30bc3be12fcdcc41af63466934c5"
     },
     {
       "path": "docs/homenova_protocol_overhaul_checkpoint.md",
