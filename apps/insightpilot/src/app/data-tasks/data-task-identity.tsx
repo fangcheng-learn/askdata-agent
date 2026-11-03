@@ -204,6 +204,9 @@ export function DataTaskUserBar({
             </div>
           </div>
           <div className="pt-1.5">
+            {currentUser.userId.startsWith("visitor_") ? (
+              <AccountMenuItem label="管理员登录" onClick={() => window.location.assign("/login?mode=admin")} />
+            ) : null}
             <AccountMenuItem
               label={t("userBar.settings")}
               onClick={() => {

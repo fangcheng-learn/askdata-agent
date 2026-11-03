@@ -34,3 +34,21 @@ def signing_key() -> bytes:
 
 
 DATASOURCE = "homenova_20260831"
+ADMIN_USER_ID = "cloud_admin"
+
+
+def verify_admin_password(password: str) -> bool:
+    """Only an explicitly configured salted hash enables the cloud administrator."""
+    import hashlib
+    import hmac
+    encoded = os.environ.get("INSIGHTPILOT_ADMIN_PASSWORD_HASH", "")
+    if not password or len(password) > 256:
+        return False
+    try:
+        algorithm, rounds, salt, expected = encoded.split("$")
+        if algorithm != "pbkdf2_sha256" or int(rounds) != 600_000:
+            return False
+        actual = hashlib.pbkdf2_hmac("sha256", password.encode(), bytes.fromhex(salt), int(rounds)).hex()
+        return hmac.compare_digest(actual, expected)
+    except (ValueError, TypeError):
+        return False

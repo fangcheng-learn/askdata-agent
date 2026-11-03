@@ -49,6 +49,9 @@ def _day(conn):
 
 
 def begin_run(run_id: str, owner: str, *, count_analysis: bool = True) -> None:
+    # Owner comes from server authentication, never from client-supplied role flags.
+    # Administrator runs still reserve money and acquire the shared execution gate.
+    count_analysis = count_analysis and owner != public_demo.ADMIN_USER_ID
     with transaction() as conn:
         gate = conn.execute("SELECT run_id, lease_until > now() FROM insightpilot_trial.gate WHERE id=1 FOR UPDATE").fetchone()
         if not gate:

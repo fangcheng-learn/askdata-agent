@@ -21,6 +21,13 @@ session databases, trace logs or private evaluation files enter the build contex
 - The image copies application code and public HomeNova snapshots only. The
   developer's databases, history, model traces, credentials, interview notes and
   private evaluation files are excluded from the build context.
+- The login page offers guest access and an administrator password form. The
+  administrator username is `admin`; only `INSIGHTPILOT_ADMIN_PASSWORD_HASH`
+  enables it (PBKDF2-SHA256, 600,000 rounds, random salt). Never commit the password
+  or its hash. Admin sessions are opaque, revocable on logout and cleared at restart.
+  Administrator runs bypass the visitor start count but keep the shared CNY 10
+  daily budget and concurrency gate. Admin history uses a separate cloud owner;
+  its dataset access remains limited to the public HomeNova snapshot.
 - Each browser receives a signed visitor identity. Existing default passwords
   are disabled in trial mode. Guests can access only `homenova_20260831`; existing
   owner checks separate their conversations, results and artifacts.
@@ -115,3 +122,6 @@ upload the developer's existing task history as the deployment database.
   the June/July metric query in 214.1 seconds, then generated a report from those
   saved results in 36.3 seconds. The report phase executed no additional SQL.
   Health remained responsive while analysis ran.
+
+- Administrator/guest login update: 30 focused backend authentication, quota and
+  adapter checks passed; Next.js production build passed. Cloud verification pending.

@@ -372,11 +372,11 @@ async def rest(request:Request,path:str):
         if path=='auth/login' and request.method=='POST':
             origin=request.headers.get('origin')
             if origin and origin not in public_demo.allowed_origins():raise HTTPException(403,'请求来源不受信任')
-            login=auth_service.login(str(body.get('email') or body.get('username') or ''),str(body.get('password') or ''))
+            login=await run_in_threadpool(auth_service.login,str(body.get('email') or body.get('username') or ''),str(body.get('password') or ''))
             if not login:raise HTTPException(401,'账号或密码不正确')
             token,user=login;response=success(identity(user))
-            response.set_cookie('ip_session',token,httponly=True,samesite='lax',path='/')
-            response.set_cookie('ip_csrf',secrets.token_urlsafe(24),samesite='lax',path='/')
+            response.set_cookie('ip_session',token,httponly=True,secure=public_demo.enabled(),samesite='lax',path='/')
+            response.set_cookie('ip_csrf',secrets.token_urlsafe(24),secure=public_demo.enabled(),samesite='lax',path='/')
             return response
         user=authenticate(request,mutation=request.method!='GET')
         if path=='auth/logout' and request.method=='POST':

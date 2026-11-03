@@ -49,7 +49,14 @@ class AuthService:
 
     def login(self, username: str, password: str) -> tuple[str, AuthUser] | None:
         if public_demo.enabled():
-            return None
+            if username.strip() != "admin" or not public_demo.verify_admin_password(password):
+                return None
+            user = AuthUser(public_demo.ADMIN_USER_ID, "admin", "管理员", "admin")
+            # Cloud administrators use the same public dataset, with their own history.
+            self._register_guest(user)
+            token = secrets.token_urlsafe(32)
+            self._tokens[token] = user
+            return token, user
         account = self.ACCOUNTS.get(username.strip())
         if not account or not secrets.compare_digest(str(account["password"]), password):
             return None
@@ -62,7 +69,7 @@ class AuthService:
         if not public_demo.enabled():
             raise PermissionError("访客试用未启用")
         user = self.authenticate("Bearer " + existing) if existing else None
-        visitor_id = user.user_id if user else "visitor_" + secrets.token_hex(16)
+        visitor_id = user.user_id if user and user.role == "visitor" else "visitor_" + secrets.token_hex(16)
         # Persist identity across restarts without persisting credentials in the image.
         expires = int(time.time()) + 30 * 86400
         body = f"{visitor_id}.{expires}"
@@ -83,6 +90,8 @@ class AuthService:
         if scheme.lower() != "bearer" or not token:
             return None
         if public_demo.enabled():
+            if token in self._tokens:
+                return self._tokens[token]
             parts = token.split(".")
             if len(parts) != 3 or not re.fullmatch(r"visitor_[0-9a-f]{32}", parts[0]):
                 return None
