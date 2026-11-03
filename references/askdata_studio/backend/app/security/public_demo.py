@@ -10,7 +10,8 @@ def enabled() -> bool:
 
 
 def public_origin() -> str:
-    value = os.environ.get("INSIGHTPILOT_PUBLIC_ORIGIN", "").rstrip("/")
+    value = (os.environ.get("INSIGHTPILOT_PUBLIC_ORIGIN") or
+             (os.environ.get("RENDER_EXTERNAL_URL", "") if enabled() else "")).rstrip("/")
     parsed = urlsplit(value)
     if enabled() and (parsed.scheme != "https" or not parsed.netloc or
                       parsed.path or parsed.query or parsed.fragment or parsed.username):

@@ -6,9 +6,11 @@ CREATE TABLE IF NOT EXISTS insightpilot_trial.gate (
 );
 INSERT INTO insightpilot_trial.gate(id) VALUES (1) ON CONFLICT DO NOTHING;
 CREATE TABLE IF NOT EXISTS insightpilot_trial.daily (
-  day date PRIMARY KEY, reserved_microyuan bigint NOT NULL DEFAULT 0
+  day date PRIMARY KEY, halted boolean NOT NULL DEFAULT false,
+  reserved_microyuan bigint NOT NULL DEFAULT 0
     CHECK (reserved_microyuan >= 0)
 );
+ALTER TABLE insightpilot_trial.daily ADD COLUMN IF NOT EXISTS halted boolean NOT NULL DEFAULT false;
 CREATE TABLE IF NOT EXISTS insightpilot_trial.visitors (
   day date NOT NULL, visitor_id text NOT NULL, starts integer NOT NULL DEFAULT 0,
   PRIMARY KEY(day, visitor_id)

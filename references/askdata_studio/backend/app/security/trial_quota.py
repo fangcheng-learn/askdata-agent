@@ -57,8 +57,8 @@ def begin_run(run_id: str, owner: str, *, count_analysis: bool = True) -> None:
             raise TrialLimit("当前有访客正在分析，请稍后再试（不会扣减本次次数）")
         day = _day(conn)
         conn.execute("INSERT INTO insightpilot_trial.daily(day) VALUES (%s) ON CONFLICT DO NOTHING", (day,))
-        used = conn.execute("SELECT reserved_microyuan FROM insightpilot_trial.daily WHERE day=%s FOR UPDATE", (day,)).fetchone()[0]
-        if used >= DAILY_LIMIT:
+        used, halted = conn.execute("SELECT reserved_microyuan,halted FROM insightpilot_trial.daily WHERE day=%s FOR UPDATE", (day,)).fetchone()
+        if halted or used >= DAILY_LIMIT:
             raise TrialLimit("今日全站试用额度已用完，请明天再来")
         conn.execute("INSERT INTO insightpilot_trial.visitors(day,visitor_id) VALUES (%s,%s) ON CONFLICT DO NOTHING", (day, owner))
         count = conn.execute("SELECT starts FROM insightpilot_trial.visitors WHERE day=%s AND visitor_id=%s FOR UPDATE", (day, owner)).fetchone()[0]
@@ -115,7 +115,7 @@ def reserve(payload: dict, kind: str) -> tuple[str, int, int]:
             raise TrialLimit("本次试用已结束，请重新发起分析")
         day = _day(conn)
         conn.execute("INSERT INTO insightpilot_trial.daily(day) VALUES (%s) ON CONFLICT DO NOTHING", (day,))
-        updated = conn.execute("UPDATE insightpilot_trial.daily SET reserved_microyuan=reserved_microyuan+%s WHERE day=%s AND reserved_microyuan+%s<=%s RETURNING day", (amount, day, amount, DAILY_LIMIT)).fetchone()
+        updated = conn.execute("UPDATE insightpilot_trial.daily SET reserved_microyuan=reserved_microyuan+%s WHERE day=%s AND NOT halted AND reserved_microyuan+%s<=%s RETURNING day", (amount, day, amount, DAILY_LIMIT)).fetchone()
         if not updated:
             raise TrialLimit("今日剩余额度不足以继续分析，已有结果已保留")
         conn.execute("INSERT INTO insightpilot_trial.reservations(id,day,run_id,amount) VALUES (%s,%s,%s,%s)", (reservation, day, run_id, amount))
@@ -138,7 +138,7 @@ def settle(ticket: tuple[str, int, int], usage: dict | None) -> None:
         day, reserved, _ = row
         if actual > reserved:
             # Unexpected provider accounting: record all cost and close today's gate.
-            conn.execute("UPDATE insightpilot_trial.daily SET reserved_microyuan=GREATEST(%s,reserved_microyuan+%s) WHERE day=%s", (DAILY_LIMIT, actual-reserved, day))
+            conn.execute("UPDATE insightpilot_trial.daily SET halted=true,reserved_microyuan=reserved_microyuan+%s WHERE day=%s", (actual-reserved, day))
         else:
             conn.execute("UPDATE insightpilot_trial.daily SET reserved_microyuan=reserved_microyuan-%s WHERE day=%s", (reserved-actual, day))
         conn.execute("UPDATE insightpilot_trial.reservations SET amount=%s,settled=true WHERE id=%s", (actual, ticket[0]))

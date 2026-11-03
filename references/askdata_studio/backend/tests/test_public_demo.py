@@ -84,6 +84,15 @@ class PublicDemoTests(unittest.TestCase):
         with patch.dict(os.environ, {'INSIGHTPILOT_PUBLIC_DEMO': 'false'}):
             self.assertIsNotNone(AuthService().login('admin', 'admin123'))
 
+    def test_render_assigned_origin_and_explicit_override(self):
+        with patch.dict(os.environ, {'INSIGHTPILOT_PUBLIC_ORIGIN': '',
+                                    'RENDER_EXTERNAL_URL': 'https://assigned.onrender.com'}):
+            self.assertEqual(public_demo.allowed_origins(), {'https://assigned.onrender.com'})
+            with patch.dict(os.environ, {'INSIGHTPILOT_PUBLIC_ORIGIN': 'https://custom.example'}):
+                self.assertEqual(public_demo.allowed_origins(), {'https://custom.example'})
+            with patch.dict(os.environ, {'RENDER_EXTERNAL_URL': 'http://invalid.example'}):
+                with self.assertRaises(RuntimeError): public_demo.public_origin()
+
     def test_local_model_calls_never_use_public_ledger(self):
         import io
         with patch.dict(os.environ, {'INSIGHTPILOT_PUBLIC_DEMO': 'false'}), \

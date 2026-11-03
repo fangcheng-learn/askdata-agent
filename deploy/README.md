@@ -1,7 +1,8 @@
 # Cloud deployment preparation
 
-Status: isolated trial implementation; cloud deployment and live quota validation
-are still pending. Do not advertise a working trial URL yet.
+Status: isolated trial implementation with offline coverage and live Postgres
+quota checks. Cloud build and end-to-end deployment are still pending. Do not
+advertise a working trial URL yet.
 
 The container packages the Next.js standalone server, Python API, and public
 HomeNova snapshots. Next.js listens on `PORT` (default 10000) and proxies to the
@@ -49,7 +50,8 @@ provider key. A separate provider key is preferable for independent billing.
 
 Set server-side environment variables (never put values in Git or browser code):
 
-- `INSIGHTPILOT_PUBLIC_ORIGIN`: exact public HTTPS origin, no path.
+- `INSIGHTPILOT_PUBLIC_ORIGIN`: exact public HTTPS origin, no path. When omitted
+  on Render, use its automatically assigned `RENDER_EXTERNAL_URL`.
 - `INSIGHTPILOT_VISITOR_SECRET`: randomly generated secret, at least 32 characters;
   keep stable across redeploys.
 - `INSIGHTPILOT_QUOTA_DATABASE_URL`: authorized Postgres connection with access to
@@ -65,9 +67,10 @@ On Render select Web Service, Docker, repository root as context,
 
 ## Required before public release
 
-- Restore connectivity to the authorized Supabase database, apply the isolated
-  schema, and validate atomic quota/concurrency/restart behavior against Postgres.
-- Finish Render's GitHub connection and configure secrets in its server environment.
+- For a fresh deployment, initialize its independent Supabase quota schema with
+  `deploy/quota_admin.py initialize --secrets-file <private-file> --project-ref <ref>`.
+  The original project's database is not reused.
+- Configure secrets in Render's server environment after authorization.
 - Test actual container peak memory under a query, frontend/API readiness and
   long-task behavior. Render's free instance has only 512 MB RAM.
 
@@ -89,6 +92,13 @@ upload the developer's existing task history as the deployment database.
   peak, especially with Next.js and a complete analysis running together.
 - Docker daemon is not running and UI access to Docker was declined. Container
   build, end-to-end cloud run and peak-memory verification remain pending.
-- Supabase connection returned `EAUTHQUERY: connection to database not available`.
-  No migration or other database write has occurred yet.
+- The newly created, independent demo Supabase project is reachable. Live checks
+  use a randomly named disposable schema, separate from public counters. They
+  cover competing starts, parallel monetary reservations, daily reset, two-start
+  limits, clarification continuation, idempotent settlement, unknown outcomes
+  across new connections, and persistent halt on unexpected provider overage.
+- 30 offline tests passed, including Render-assigned origin handling and visitor
+  record isolation. Live checks do not call a model or consume model budget.
+- All 7 live Postgres checks passed; their disposable schema was cleaned up.
+  The independent demo project's 4 production quota tables were initialized.
 - No real model calls or cloud deployment have occurred in this implementation.
