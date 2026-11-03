@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from datetime import datetime, timezone
 from collections import defaultdict
 from typing import Any
 
@@ -52,6 +53,7 @@ class SessionContext:
             "workspace": workspace,
             "user_id": user_id,
             "result": result,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
         }
         if result.task_id not in self.session_tasks[session_id]:
             self.session_tasks[session_id].append(result.task_id)
@@ -62,7 +64,28 @@ class SessionContext:
             workspace,
             result.model_dump(mode="json"),
         )
-        self.short_term_memory.maybe_schedule(session_id, self._memory_items(session_id))
+        # ReAct maintains its own structured investigation state in its existing
+        # decision calls. Do not quietly add a second summary-model call.
+        if result.workflow_mode != "investigation_react_v1":
+            self.short_term_memory.maybe_schedule(session_id, self._memory_items(session_id))
+
+    def restore_checkpoint(
+        self, session_id: str, result: QueryResult, query: str,
+        workspace: dict[str, Any], user_id: str,
+    ) -> None:
+        """Register an already owner-authorized durable task without model calls.
+
+        This differs from optional chat-archive restoration: its owner, current
+        data-source permission, evidence, and remaining budget were checked by
+        the service and investigation store before registration.
+        """
+        self.tasks[result.task_id] = {
+            "query": query, "session_id": session_id, "workspace": workspace,
+            "user_id": user_id, "result": result,
+            "restored": True, "checkpoint_restored": True,
+        }
+        if result.task_id not in self.session_tasks[session_id]:
+            self.session_tasks[session_id].append(result.task_id)
 
     def _restore_archive(self) -> None:
         for item in self.archive.load_turns():
@@ -83,6 +106,10 @@ class SessionContext:
                 "workspace": item["workspace"],
                 "result": result,
                 "restored": True,
+                # Only service-created scoped sessions establish an owner.
+                # Legacy unscoped archives remain unavailable to history APIs.
+                "user_id": session_id.split(':', 1)[0] if session_id.count(':') >= 2 else None,
+                "updated_at": item.get('updated_at'),
             }
             self.session_tasks[session_id].append(task_id)
 
@@ -101,7 +128,7 @@ class SessionContext:
         return (
             task
             if task
-            and not task.get("restored")
+            and (not task.get("restored") or task.get("checkpoint_restored"))
             and task["result"].status == "waiting_clarification"
             else None
         )
@@ -109,6 +136,12 @@ class SessionContext:
     def latest_table_result(self, session_id: str) -> QueryResult | None:
         for task_id in reversed(self.session_tasks.get(session_id, [])):
             result: QueryResult = self.tasks[task_id]["result"]
+            # A partial investigation is still the user's current subject.
+            # Never silently fall back to an older successful, unrelated table.
+            if result.workflow_mode == 'investigation_react_v1':
+                return result
+            if result.route == 'data_qa' and result.evidence:
+                return result
             if result.status == "completed" and result.route == "database_query" and result.rows:
                 return result
         return None
@@ -141,7 +174,24 @@ class SessionContext:
             "assistant_summary": str(item.get("analysis") or "")[:240],
             "columns": list(item.get("columns") or []),
             "row_count": int(item.get("row_count") or 0),
+            "available_evidence": item.get("available_evidence") or [],
         }
+
+    @staticmethod
+    def _evidence_headers(result: QueryResult) -> list[dict]:
+        # Investigations store rows under individual R entries, not the outer
+        # QueryResult.rows. The router needs this catalog to distinguish an
+        # existing result question from a new database request, without SQL,
+        # row payloads, storage handles, or a second model call.
+        return [{
+            'result_id': item.get('id'), 'goal': item.get('goal'),
+            'columns': list(item.get('columns') or []),
+            'complete': bool(item.get('complete')), 'total_rows': item.get('total_rows'),
+            'check_status': item.get('check_status'),
+            'metric_names': [m.get('name') for m in (item.get('query_contract') or {}).get('metrics') or []],
+            'time_range': (item.get('query_contract') or {}).get('time_range'),
+            'time_ranges': (item.get('query_contract') or {}).get('time_ranges') or [],
+        } for item in result.evidence if item.get('check_status') in {'basic_valid', 'reviewed'}]
 
     def _selected_table_headers(
         self, session_id: str, workspace: dict[str, Any]
@@ -173,6 +223,7 @@ class SessionContext:
                 "query": task.get("query", ""),
                 "columns": result.columns,
                 "row_count": len(result.rows),
+                "available_evidence": self._evidence_headers(result),
             })
         return headers
 
@@ -190,6 +241,7 @@ class SessionContext:
                 "analysis": result.analysis or "",
                 "columns": result.columns,
                 "row_count": len(result.rows),
+                "available_evidence": self._evidence_headers(result),
             })
         return output
 
@@ -211,6 +263,11 @@ class SessionContext:
             return ""
         return json.dumps({
             "task_id": result.task_id,
+            "user_id": self.tasks.get(result.task_id, {}).get('user_id'),
+            "status": result.status, "workflow_mode": result.workflow_mode,
+            "final_reviewed": result.final_reviewed, "stop_reason": result.stop_reason,
+            "requirements": result.requirements,
+            "report": result.report.model_dump(mode='json', exclude={'data_sources'}) if result.report else None,
             "title": result.result_title or "最近查询结果",
             "row_count": result.total_rows if result.total_rows is not None else len(result.rows),
             "result_ref": result.result_ref, "complete": result.complete,
@@ -259,7 +316,7 @@ class SessionContext:
             if not task or task.get("session_id") != session_id:
                 continue
             result: QueryResult = task["result"]
-            if result.status != "completed" or not result.rows:
+            if (result.status != "completed" or not result.rows) and result.workflow_mode != 'investigation_react_v1' and not result.evidence:
                 continue
             source = {
                 "task_id": task_id,
@@ -273,6 +330,12 @@ class SessionContext:
             sources.append(source)
             payloads.append({
                 **source,
+                "user_id": task.get('user_id'), "status": result.status,
+                "workflow_mode": result.workflow_mode, "final_reviewed": result.final_reviewed,
+                "stop_reason": result.stop_reason, "requirements": result.requirements,
+                "datasource_id": result.datasource_id, "scenario": result.scenario,
+                "evidence": result.evidence, "complete": result.complete,
+                "report": result.report.model_dump(mode='json', exclude={'data_sources'}) if result.report else None,
                 "analysis": result.analysis,
                 "sql": result.sql, "query_validations": self._query_validations(result),
                 "validation_metadata_available": bool(self._query_validations(result)),

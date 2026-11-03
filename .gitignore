@@ -41,3 +41,11 @@ references/askdata_studio/backend/data/*
 !/data/homenova_phase_d/public/
 /data/homenova_phase_e/*
 !/data/homenova_phase_e/public_semantics/
+
+# InsightPilot build output and local workbench caches
+**/.next/
+**/.next-*/
+**/.tmp/
+/output/
+/docs/run_reports/
+/docs/askdata_audit_evidence/

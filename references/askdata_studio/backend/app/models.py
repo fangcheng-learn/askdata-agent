@@ -49,6 +49,8 @@ class ClarificationOption(BaseModel):
 
 
 class Clarification(BaseModel):
+    required: bool = True
+    allow_skip: bool = False
     parameter: str = "other"
     question: str
     reason: str
@@ -66,20 +68,48 @@ class Interpretation(BaseModel):
 class VisualizationSpec(BaseModel):
     type: Literal["bar", "pie"]
     title: str
-    source_task_id: str
+    source_task_id: str = ""
+    source_result_id: str | None = None
+    source_version: str | None = None
     category_field: str
+    series_field: str | None = Field(default=None, description='对比多个期间或组别时，指向实际期间/组别列；标签同时显示类别和系列')
     value_field: str
     max_items: int = Field(default=12, ge=3, le=30)
+    order: Literal["value_desc", "category_asc", "source"] = "value_desc"
+    unit: str | None = None
+    currency: str | None = None
+    precision: int = Field(default=2, ge=0, le=8)
+
+
+class ReportDataSource(BaseModel):
+    """Authorized data frozen together with the report reviewed for delivery."""
+
+    result_id: str
+    version: str
+    task_id: str = ""
+    datasource_id: str = ""
+    title: str = "查询结果"
+    columns: list[str] = Field(default_factory=list)
+    rows: list[dict[str, Any]] = Field(default_factory=list)
+    complete: bool = False
+    provided_rows: int = 0
+    total_rows: int | None = None
+    units: dict[str, str] = Field(default_factory=dict)
+    currencies: dict[str, str] = Field(default_factory=dict)
+    precisions: dict[str, int] = Field(default_factory=dict)
 
 
 class AnalysisReport(BaseModel):
     title: str
     markdown: str
     visualizations: list[VisualizationSpec] = Field(default_factory=list)
+    data_sources: list[ReportDataSource] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
 
 
 class QueryResult(BaseModel):
     task_id: str
+    session_id: str | None = None
     status: Literal["waiting_clarification", "completed", "partial", "failed"]
     route: Literal["database_query", "data_qa", "direct_response"]
     message: str
@@ -100,6 +130,7 @@ class QueryResult(BaseModel):
     standalone_query: str | None = None
     schema_graph: dict[str, Any] | None = None
     workflow_mode: str | None = None
+    execution_protocol_version: int | None = None
     report: AnalysisReport | None = None
     report_tool_calls: list[dict[str, Any]] = Field(default_factory=list)
     datasource_id: str | None = None
@@ -115,6 +146,7 @@ class QueryResult(BaseModel):
     selected_skills: list[str] = Field(default_factory=list)
     retrieval_history: list[dict[str, Any]] = Field(default_factory=list)
     final_reviewed: bool = False
+    content_review_status: str | None = None
     stop_reason: str | None = None
     budget: dict[str, Any] = Field(default_factory=dict)
     result_ref: str | None = None

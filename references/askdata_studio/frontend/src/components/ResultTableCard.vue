@@ -10,7 +10,7 @@ const props = withDefaults(defineProps<{
   error?: string
   initialPageSize?: number
 }>(), {
-  updatedAt: "刚刚更新",
+  updatedAt: "",
   loading: false,
   error: "",
   initialPageSize: 10,
@@ -113,7 +113,7 @@ function exportExcel(event: MouseEvent) {
     <header class="data-card-header">
       <div class="data-card-heading">
         <span class="sheet-icon">▦</span>
-        <div><strong>{{ title }}</strong><small>{{ rows.length.toLocaleString("zh-CN") }} 行 · {{ updatedAt }}</small></div>
+        <div><strong>{{ title }}</strong><small>{{ rows.length.toLocaleString("zh-CN") }} 行<span v-if="updatedAt"> · {{ updatedAt }}</span></small></div>
       </div>
       <div class="data-card-actions">
         <slot name="actions"></slot>

@@ -78,17 +78,18 @@ class TimeRangeToolV7Test(unittest.TestCase):
         self.assertEqual(prior['end_date'], '2026-12-31')
         self.assertEqual(prior['end_exclusive'], '2027-01-01')
 
-    def test_homenova_mcp_uses_same_endpoint_contract_without_reading_machine_clock(self):
-        class NoMachineDatetime(datetime):
+    def test_homenova_mcp_uses_real_today_with_same_endpoint_contract(self):
+        class FrozenDatetime(datetime):
             @classmethod
             def now(cls, tz=None):
-                raise AssertionError('HomeNova must use snapshot scenario date')
+                return cls(2026, 10, 29, 12, 0, tzinfo=tz)
 
         for database in ['homenova_20260831', 'homenova_20261015']:
-            with self.subTest(database=database), patch('app.mcp_runtime.server.datetime', NoMachineDatetime):
+            with self.subTest(database=database), patch('app.mcp_runtime.server.datetime', FrozenDatetime):
                 client = self.client(database)
                 scenario = homenova.scenario(database)
-                expected = datetime.fromisoformat(scenario['analysis_datetime']).date()
+                expected = date(2026, 10, 29)
+                self.assertNotEqual(expected.isoformat(), scenario['analysis_date'])
                 today = client.call_tool('resolve_date_range', {'expression': '今天', 'timezone_name': 'Europe/Berlin'})
                 self.assertEqual(today['start_date'], expected.isoformat())
                 self.assertEqual(today['end_date'], expected.isoformat())

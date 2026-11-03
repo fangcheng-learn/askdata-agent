@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from ..agent_configuration_runtime import effective_prompt
+from ..prompt_defaults import MEMORY_SUMMARY_SYSTEM
+
 import json
 import logging
 from concurrent.futures import Future, ThreadPoolExecutor
@@ -123,6 +126,7 @@ class ShortTermMemory:
                 previous_summary,
                 batch,
                 batch_ids,
+                system_prompt=effective_prompt('memory_summary', MEMORY_SUMMARY_SYSTEM),
             )
 
         logger.info(
@@ -160,10 +164,12 @@ class ShortTermMemory:
         previous_summary: str,
         batch: list[dict[str, Any]],
         batch_ids: list[str],
+        *,
+        system_prompt: str | None = None,
     ) -> None:
-        system = """你负责增量压缩会话历史。保留用户目标、已确认业务口径、筛选条件、
-关键结果、分析结论和未完成事项。输入包含上一版摘要和一批新的旧轮次；请合并为新版摘要。
-不要推测缺失信息，不要返回JSON，只输出简洁的摘要文本。"""
+        # Freeze the queued prompt without copying a task's mutable budget
+        # ContextVar into this independent background worker.
+        system = system_prompt if system_prompt is not None else effective_prompt('memory_summary', MEMORY_SUMMARY_SYSTEM)
         user = json.dumps(
             {
                 "previous_summary": previous_summary or "无",

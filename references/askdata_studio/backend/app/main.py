@@ -37,3 +37,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(router)
+
+# Native DataFoundry workbench protocol, backed by the existing analysis service.
+from .foundry_adapter.router import router as foundry_router
+app.include_router(foundry_router)

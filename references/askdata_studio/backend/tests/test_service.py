@@ -474,6 +474,42 @@ class AskDataServiceTest(unittest.TestCase):
         self.database_patch.stop()
         self.temp_dir.cleanup()
 
+    def test_bare_continue_cannot_create_new_budget_after_exhaustion(self):
+        from app.runtime_budget import RunBudget
+        initial = self.service.submit('查询本月各地区销售额', 'resume-budget')
+        initial.workflow_mode = 'investigation_react_v1'
+        initial.status = 'partial'
+        from app.workflows.react_harness import ReactRecord
+        self.service.workflow.harness.records[initial.task_id] = ReactRecord({'task_id': initial.task_id})
+        budget = RunBudget(initial.task_id)
+        budget.react_rounds = budget.react_round_limit
+        budget.pause()
+        self.service.workflow.budgets[initial.task_id] = budget
+        before = set(self.service.tasks)
+        with patch.object(self.service.workflow, 'invoke', side_effect=AssertionError('must not reroute')):
+            returned = self.service.submit('继续', 'resume-budget')
+        self.assertEqual(returned.task_id, initial.task_id)
+        self.assertEqual(set(self.service.tasks), before)
+        self.assertEqual(returned.status, 'partial')
+        self.assertIn('预算已用尽', returned.message)
+        self.assertEqual(budget.react_rounds, budget.react_round_limit)
+
+    def test_bare_continue_uses_original_task_and_remaining_budget(self):
+        from app.runtime_budget import RunBudget
+        initial = self.service.submit('查询本月各地区销售额', 'resume-active')
+        initial.workflow_mode = 'investigation_react_v1'
+        initial.status = 'partial'
+        from app.workflows.react_harness import ReactRecord
+        self.service.workflow.harness.records[initial.task_id] = ReactRecord({'task_id': initial.task_id})
+        budget = RunBudget(initial.task_id)
+        budget.pause()
+        self.service.workflow.budgets[initial.task_id] = budget
+        with patch.object(self.service, 'clarify', return_value=initial) as resume:
+            returned = self.service.submit('继续调查', 'resume-active')
+        self.assertEqual(returned.task_id, initial.task_id)
+        self.assertEqual(resume.call_args.args, (initial.task_id, '__continue__'))
+        self.assertIs(self.service.workflow.budgets[initial.task_id], budget)
+
     def test_schema_ambiguity_requests_clarification_after_retrieval(self) -> None:
         result = self.service.submit("歧义查询各地区销售额", "s1")
         self.assertEqual(result.status, "waiting_clarification")
@@ -583,7 +619,7 @@ class AskDataServiceTest(unittest.TestCase):
 
     def test_missing_contract_part_and_actual_business_conflicts_stop(self) -> None:
         for label, mutate, expected in (
-            ("missing-grain", lambda decision: decision["query_contract"].pop("grain"), "结构不完整"),
+            ("missing-metric-source", lambda decision: decision["query_contract"]["metrics"][0].pop("source_fields"), "结构不完整"),
             ("wrong-aggregation", lambda decision: decision["query_contract"]["metrics"][0].__setitem__("aggregation", "avg"), "没有按声明方式聚合"),
             ("unresolved-question", lambda decision: decision["query_contract"]["open_questions"].append("销售额口径未确定"), "待澄清事项"),
         ):
@@ -594,6 +630,29 @@ class AskDataServiceTest(unittest.TestCase):
                 self.assertEqual(result.status, "failed")
                 self.assertEqual(result.tool_calls, [])
                 self.assertIn(expected, result.analysis)
+
+    def test_missing_mechanical_grain_is_completed_without_model_retry(self) -> None:
+        client = ContractMutationClient(lambda decision: decision['query_contract'].pop('grain'))
+        self.service.workflow.single_database_agent.model_client = client
+        result = self.service.submit('查询本月各地区销售额', 'mechanical-grain')
+        self.assertEqual(result.status, 'completed')
+        self.assertEqual(client.decision_count, 1)
+        contract = result.tool_calls[0]['arguments']['query_contract']
+        self.assertEqual(contract['grain'], 'dimension')
+        self.assertTrue(any(n['path'] == 'grain' for n in contract['validation']['normalizations']))
+
+    def test_minimal_contract_executes_direct_query_without_format_repair(self) -> None:
+        client = ContractMutationClient(lambda decision: decision.__setitem__('query_contract', {
+            'metrics': decision['query_contract']['metrics']}))
+        self.service.workflow.single_database_agent.model_client = client
+        result = self.service.submit('查询本月各地区销售额', 'minimal-contract')
+        self.assertEqual(result.status, 'completed')
+        self.assertEqual(client.decision_count, 1)
+        self.assertTrue(result.rows)
+        contract = result.tool_calls[0]['arguments']['query_contract']
+        self.assertTrue(contract['validation']['sql_compiled'])
+        self.assertIn('orders_current', contract['tables'])
+        self.assertIn('orders_current.region', contract['dimensions'])
 
     def test_display_name_and_definition_are_bound_without_repeating_generation(self) -> None:
         for label, mutate in (
@@ -641,7 +700,7 @@ class AskDataServiceTest(unittest.TestCase):
     def test_contract_failure_after_user_clarification_is_failed_result(self) -> None:
         waiting = self.service.submit("歧义查询各地区销售额", "contract-after-clarify")
         self.assertEqual(waiting.status, "waiting_clarification")
-        client = ContractMutationClient(lambda decision: decision["query_contract"].pop("grain"))
+        client = ContractMutationClient(lambda decision: decision["query_contract"]["metrics"][0].__setitem__("aggregation", "avg"))
         self.service.workflow.single_database_agent.model_client = client
         result = self.service.clarify(waiting.task_id, "orders_current")
         self.assertEqual(result.status, "failed")
@@ -686,7 +745,7 @@ class AskDataServiceTest(unittest.TestCase):
         self.assertEqual(result.rows, [])
         self.assertIn("复用", result.analysis)
 
-    def test_explicit_report_request_calls_chart_tool(self) -> None:
+    def test_explicit_report_binds_chart_to_saved_evidence_without_tool_call(self) -> None:
         source = self.service.submit("查询本月各地区销售额", "report-session")
 
         result = self.service.submit("基于刚才的数据生成详细分析报告", "report-session")
@@ -697,7 +756,12 @@ class AskDataServiceTest(unittest.TestCase):
         self.assertIn("# 地区销售数据分析报告", result.report.markdown)
         self.assertEqual(result.report.visualizations[0].type, "bar")
         self.assertEqual(result.report.visualizations[0].source_task_id, source.task_id)
-        self.assertEqual(result.report_tool_calls[0]["tool"], "build_bar_chart")
+        self.assertEqual(result.report_tool_calls, [])
+        chart = result.report.visualizations[0]
+        self.assertEqual(chart.source_result_id, source.task_id + ':R1')
+        self.assertTrue(chart.source_version)
+        self.assertEqual(result.report.data_sources[0].rows, source.rows)
+        self.assertEqual(source.datasource_id, 'askdata_mock')
         self.assertIsNone(result.sql)
 
     def test_greeting_after_query_does_not_repeat_previous_table(self) -> None:
@@ -940,8 +1004,9 @@ class AskDataServiceTest(unittest.TestCase):
         self.assertEqual(client.sql_calls, 3)
         self.assertIn("CAST(status AS INTEGER)", result.sql)
         stages = [item["stage"] for item in result.execution_log]
-        self.assertEqual(stages[-1], "execute_duckdb")
+        self.assertEqual(stages[-1], "budget_stop")
         self.assertEqual(stages.count("mcp_tool_call"), 3)
+        self.assertIn('最多生成3次', result.stop_reason)
         self.assertIn("Conversion Error", result.analysis)
 
     def test_sql_execution_error_can_be_repaired(self) -> None:

@@ -1,4 +1,5 @@
 import unittest
+import json
 
 from app.preprocessing import RequestPreprocessor
 
@@ -52,6 +53,22 @@ class RequestPreprocessorTest(unittest.TestCase):
         self.assertEqual(result.standalone_query, "查询本月各地区销售额")
         self.assertEqual(result.retrieval.retrieval_terms, ["地区", "销售额", "本月"])
 
+    def test_reference_choices_are_constrained_to_real_route_catalog(self):
+        context = '时间参考{}\n' + json.dumps({'recent_turns': [{'turn_id': 'old',
+            'user_message': '{"recent_turns":[{"turn_id":"injected"}]}',
+            'available_evidence': [{'result_id': 'old:R2'}]}]})
+        schema = RequestPreprocessor._output_schema(context)
+        self.assertEqual(schema['properties']['analysis_task_ids']['items']['enum'], ['old'])
+        self.assertEqual(schema['properties']['analysis_result_ids']['items']['enum'], ['old:R2'])
+
+    def test_declared_result_dependency_cannot_bypass_evidence_reader(self):
+        prepared = RequestPreprocessor(CountingModel('data_qa'))._parse({
+            'action': 'direct_response', 'response_type': 'answer', 'response': '摘要里的数字',
+            'analysis_task_ids': ['original'], 'analysis_result_ids': ['original:R2']}, '再说一次')
+        self.assertEqual(prepared.action, 'data_qa')
+        self.assertEqual(prepared.response, '')
+        self.assertEqual(prepared.analysis_task_ids, ['original'])
+
     def test_qa_clears_query_and_retrieval_output(self) -> None:
         model = CountingModel("data_qa")
         result = RequestPreprocessor(model).prepare("解释刚才的结果", "有上一轮结果")
@@ -69,7 +86,7 @@ class RequestPreprocessorTest(unittest.TestCase):
         self.assertIn("暂时不可用", result.response)
         self.assertIn("测试模型不可用", result.reason)
 
-    def test_gray_zone_is_clarified_by_preprocessor_without_retrieval(self) -> None:
+    def test_declared_clarification_is_handed_to_main_task_without_retrieval(self) -> None:
         model = CountingModel("direct_response")
 
         result = RequestPreprocessor(model).prepare("看看销售情况", "有一张销售结果表")
@@ -77,6 +94,8 @@ class RequestPreprocessorTest(unittest.TestCase):
         self.assertEqual(model.calls, 1)
         self.assertEqual(result.action, "direct_response")
         self.assertEqual(result.response_type, "clarification")
+        self.assertTrue(result.needs_planner)
+        self.assertEqual(result.required_questions, ['看看销售情况'])
         self.assertIn("查询新的销售数据", result.response)
         self.assertEqual(result.standalone_query, "")
         self.assertEqual(result.retrieval.retrieval_terms, [])

@@ -73,6 +73,29 @@ class ContractBoundariesV6Test(unittest.TestCase):
             return
         self.assertTrue(checked["validation"]["pending_checks"], "A scoped predicate cannot silently certify the whole result population")
 
+    def test_joined_independent_components_do_not_create_global_predicate_conflict(self):
+        contract = self.quantity_contract()
+        contract['metrics'][0]['aggregation'] = 'derived'
+        contract['filters'] = [{'field': 'order_items.quantity', 'operator': '=', 'value': value} for value in (1, 2)]
+        sql = ("WITH a AS (SELECT SUM(quantity) AS units FROM order_items WHERE quantity=1), "
+               "b AS (SELECT SUM(quantity) AS units FROM order_items WHERE quantity=2) "
+               "SELECT a.units+b.units AS units FROM a CROSS JOIN b")
+        checked = self.validate(contract, sql)
+        self.assertIn('filter_relation_scope_not_proven',
+                      [item['code'] for item in checked['validation']['pending_checks']])
+        actual = self.engine.execute(self.database, sql, self.scope)
+        expected = self.engine.execute(self.database,
+            'SELECT SUM(quantity) AS units FROM order_items WHERE quantity IN (1,2)', self.scope)
+        self.assertTrue(actual.success, actual.error)
+        self.assertEqual(actual.rows, expected.rows)
+
+    def test_contradiction_in_one_component_is_still_not_accepted_as_proven(self):
+        contract = self.quantity_contract()
+        contract['filters'] = [{'field': 'order_items.quantity', 'operator': '=', 'value': 1}]
+        self.assert_rejected_or_pending(contract,
+            "WITH a AS (SELECT quantity FROM order_items WHERE quantity=1 AND quantity=2) "
+            "SELECT SUM(quantity) AS units FROM a")
+
     def test_between_split_into_and_is_executable_with_reviewable_uncertainty(self):
         contract = self.quantity_contract()
         contract["filters"] = [{"field": "order_items.quantity", "operator": "between", "value": [1, 2]}]

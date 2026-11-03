@@ -172,7 +172,7 @@ class QueryValidationV3Test(unittest.TestCase):
         self.assertEqual(result['time_range']['field'], 'orders_current.order_date')
         self.assertTrue(result['validation']['normalizations'])
         denied = copy.deepcopy(self.scope); denied['allowed_tables'] = []
-        with self.assertRaises(ValueError):
+        with self.assertRaises(PermissionError):
             self.validate(contract, sql, scope=denied)
 
     def test_wrong_aggregation_and_missing_actual_measure_still_block(self):
@@ -208,7 +208,7 @@ class QueryValidationV3Test(unittest.TestCase):
 
     def test_table_permissions_and_read_only_are_not_relaxed(self):
         denied = copy.deepcopy(self.scope); denied['allowed_tables'] = []
-        with self.assertRaises(ValueError):
+        with self.assertRaises(PermissionError):
             self.validate(self.contract(), 'SELECT SUM(paid_amount) AS total FROM orders_current', scope=denied)
         with self.assertRaises(ValueError):
             self.validate(self.contract(), 'DELETE FROM orders_current')

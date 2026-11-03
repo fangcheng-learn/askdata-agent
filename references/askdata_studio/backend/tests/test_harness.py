@@ -102,7 +102,7 @@ class BudgetTest(unittest.TestCase):
         b.replan()
         with self.assertRaises(BudgetStop):b.replan()
     def test_wait_is_paused_and_closing_reserves_one_minute(self):
-        with patch('app.runtime_budget.time.monotonic',return_value=10):b=RunBudget('T');b.start()
+        with patch('app.runtime_budget.time.monotonic',return_value=10):b=RunBudget('T', seconds=300, investigation_seconds=240);b.start()
         with patch('app.runtime_budget.time.monotonic',return_value=250):
             self.assertEqual(b.remaining(),0)
             with self.assertRaises(BudgetStop):b.check()

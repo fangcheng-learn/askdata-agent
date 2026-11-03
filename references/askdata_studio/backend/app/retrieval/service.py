@@ -10,6 +10,7 @@ from ..config import BASE_DIR, Settings, settings
 from ..database import RELATIONS, SCHEMA, physical_table_name
 from ..errors import PipelineStageError
 from ..model_client import ModelClient
+from ..runtime_budget import BudgetStop
 from ..querying.duckdb_engine import DuckDbEngine
 from ..security import AccessScope
 from ..homenova import is_homenova, RUNTIME_ROOT
@@ -71,6 +72,8 @@ class SchemaIndex:
             vectors = self.model_client.embed(semantic_texts)
             self.embedding_source = self.config.embedding_model
             self.last_build_error = None
+        except BudgetStop:
+            raise
         except (RuntimeError, KeyError, TypeError, ValueError) as exc:
             self.last_build_error = str(exc)
             raise PipelineStageError("schema_embedding", str(exc)) from exc
@@ -170,6 +173,8 @@ class SchemaIndex:
             }
             if not rerank_scores:
                 raise RuntimeError("Rerank返回为空")
+        except BudgetStop:
+            raise
         except (RuntimeError, KeyError, TypeError, ValueError) as exc:
             raise PipelineStageError("schema_rerank", str(exc)) from exc
 
@@ -434,6 +439,8 @@ class SchemaIndex:
     def _query_vector(self, text: str) -> list[float]:
         try:
             return self.model_client.embed([text])[0]
+        except BudgetStop:
+            raise
         except (RuntimeError, KeyError, TypeError, ValueError) as exc:
             raise PipelineStageError("query_embedding", str(exc)) from exc
 

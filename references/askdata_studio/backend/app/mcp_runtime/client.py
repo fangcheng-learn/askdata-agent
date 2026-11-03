@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import json
+from uuid import uuid4
 from typing import Any
 
 from ..runtime_budget import current_budget, BudgetStop
@@ -20,7 +22,10 @@ class LocalMcpClient:
         if budget:
             budget.check()
         try:
-            return asyncio.run(self._list_tools())
+            from ..workbench_runtime import current_execution
+            control = current_execution.get()
+            found = asyncio.run(self._list_tools())
+            return [tool for tool in found if not control or control.tools is None or tool['name'] in control.tools]
         except TimeoutError as exc:
             if budget:
                 raise BudgetStop("MCP工具发现超出剩余主动时间预算") from exc
@@ -47,15 +52,39 @@ class LocalMcpClient:
             ]
 
     def call_tool(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+        from ..workbench_runtime import current_execution, check_execution
+        check_execution('正在查询并核对经营数据')
+        control = current_execution.get()
+        if control and control.tools is not None and name not in control.tools:
+            raise PermissionError('本次分析未启用该 MCP 工具：' + name)
         budget = current_budget.get()
-        if budget:
-            budget.tool(name)
+        reservation = budget.begin_tool_call(name) if budget else None
+        from ..workbench_runtime import emit_execution_event
+        call_id = 'tool-'+uuid4().hex
+        emit_execution_event({'type':'TOOL_CALL_START','toolCallId':call_id,'toolCallName':name,'parentMessageId':call_id+'-message'})
+        emit_execution_event({'type':'TOOL_CALL_ARGS','toolCallId':call_id,'delta':json.dumps(arguments,ensure_ascii=False,default=str)})
+        emit_execution_event({'type':'TOOL_CALL_END','toolCallId':call_id})
         try:
-            return asyncio.run(self._call_tool(name, arguments))
-        except TimeoutError as exc:
+            result = asyncio.run(self._call_tool(name, arguments))
+            emit_execution_event({'type':'TOOL_CALL_RESULT','toolCallId':call_id,'messageId':call_id+'-result',
+                'content':json.dumps(result,ensure_ascii=False,default=str)})
+            from ..business_progress import query_table
+            table=query_table(result,call_id)
+            if table:
+                table['tool_call_id']=call_id
+                emit_execution_event({'type':'CUSTOM','name':'artifact','value':table})
+            return result
+        except Exception as exc:
+            emit_execution_event({'type':'TOOL_CALL_RESULT','toolCallId':call_id,'messageId':call_id+'-result',
+                'content':json.dumps({'error':str(exc)},ensure_ascii=False)})
+            if not isinstance(exc, TimeoutError):
+                raise
             if budget:
                 raise BudgetStop("MCP工具调用超出剩余主动时间预算") from exc
             raise RuntimeError("MCP工具调用超时") from exc
+        finally:
+            if budget and reservation:
+                budget.finish_tool_call(reservation)
 
     async def _call_tool(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         async with Client(self.server) as client:

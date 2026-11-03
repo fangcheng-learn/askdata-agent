@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Start the actual AskData V2 copy without touching the other applications."""
+"""Start InsightPilot with the reused DataFoundry frontend and existing analysis service."""
 from __future__ import annotations
 
 import argparse
@@ -15,6 +15,7 @@ from urllib.request import urlopen
 
 ROOT = Path(__file__).resolve().parents[2]
 APP = ROOT / "references/askdata_studio"
+FRONTEND = ROOT / "apps/insightpilot"
 PRIVATE = ROOT / "data/homenova_phase_e/private"
 NODE = Path("/Users/fangchengdemac/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node")
 
@@ -45,7 +46,13 @@ def main():
     parser.add_argument("action", choices=("start", "restart", "status"))
     parser.add_argument("--model", help="Optional model name; existing running model takes precedence by default")
     parser.add_argument("--record-dir", type=Path, help="Write new runtime records outside historical E evidence")
+    parser.add_argument("--restart-frontend", action="store_true", help="With restart, also restart only this project's frontend")
+    parser.add_argument("--frontend-only", action="store_true", help="With restart, replace only the frontend and retain backend jobs and login sessions")
     args = parser.parse_args()
+    if args.restart_frontend and args.action != 'restart':
+        parser.error('--restart-frontend requires restart')
+    if args.frontend_only and args.action != 'restart':
+        parser.error('--frontend-only requires restart')
     global PRIVATE
     if args.record_dir:
         PRIVATE = args.record_dir.resolve()
@@ -55,8 +62,12 @@ def main():
         with urlopen("http://127.0.0.1:8001/api/health", timeout=3) as response:
             previous_status = json.load(response)
     child_env = os.environ.copy()
+    # User requested pausing independent report content review; retain an explicit switch.
+    child_env.setdefault("REPORT_CONTENT_REVIEW_ENABLED", "false")
+    if args.frontend_only and not previous_status:
+        raise RuntimeError("Backend is unavailable; frontend-only restart will not start or change it")
     model = args.model or previous_status.get("llm_model") or child_env.get("LLM_MODEL")
-    if args.action != "status":
+    if args.action != "status" and not args.frontend_only:
         sys.path.insert(0, str(APP / "backend"))
         from app.config import load_env
         if os.environ.get("LLM_API_KEY") and not child_env.get("LLM_API_KEY"):
@@ -72,7 +83,7 @@ def main():
             child_env["LLM_API_KEY"] = key
         model = model or shared.get("QWEN_MODEL") or "qwen3.7-plus"
         child_env["LLM_MODEL"] = model
-    if args.action == "restart":
+    if args.action == "restart" and not args.frontend_only:
         for pid in listener(8001):
             command = subprocess.check_output(["ps", "-p", str(pid), "-o", "command="], text=True)
             expected = str(APP / "backend/.venv/bin/python")
@@ -85,9 +96,28 @@ def main():
             time.sleep(0.1)
         if listener(8001):
             raise RuntimeError("Previous V2 backend did not stop")
+    if args.action == "restart":
+        if args.restart_frontend or args.frontend_only:
+            for pid in listener(5174):
+                command = subprocess.check_output(["ps", "-p", str(pid), "-o", "command="], text=True)
+                expected = str(APP / "frontend/node_modules/vite/bin/vite.js")
+                cwd_info = subprocess.check_output(['lsof','-a','-p',str(pid),'-d','cwd','-Fn'], text=True)
+                old_vite = expected in command and '--host 127.0.0.1' in command
+                native_next = ('next-server' in command or '/next/dist/bin/next' in command) and ('n'+str(FRONTEND)+'\n') in cwd_info
+                if not (old_vite or native_next):
+                    raise RuntimeError('Port 5174 belongs to another process; refusing to stop it')
+                os.kill(pid, signal.SIGTERM)
+            for _ in range(50):
+                if not listener(5174):
+                    break
+                time.sleep(0.1)
+            if listener(5174):
+                raise RuntimeError('Previous V2 frontend did not stop')
     started = {}
     if args.action != "status":
         if not available("http://127.0.0.1:8001/api/health"):
+            if args.frontend_only:
+                raise RuntimeError("Backend became unavailable; frontend-only restart will not start or change it")
             if listener(8001):
                 raise RuntimeError("Port 8001 is occupied but its health endpoint is unavailable")
             started["backend"] = launch(
@@ -98,14 +128,14 @@ def main():
             if listener(5174):
                 raise RuntimeError("Port 5174 is occupied by an unavailable frontend")
             started["frontend"] = launch(
-                [str(NODE), str(APP / "frontend/node_modules/vite/bin/vite.js"), "--host", "127.0.0.1"],
-                APP / "frontend", PRIVATE / "frontend.runtime.log")
+                [str(NODE), str(ROOT / 'node_modules/next/dist/bin/next'), 'start', '--hostname', '127.0.0.1', '--port', '5174'],
+                FRONTEND, PRIVATE / 'frontend.runtime.log')
         for _ in range(100):
             if available("http://127.0.0.1:8001/api/health") and available("http://127.0.0.1:5174"):
                 break
             time.sleep(0.2)
     result = {
-        "project": str(APP), "backend_url": "http://127.0.0.1:8001",
+        "project": str(APP), "frontend_project": str(FRONTEND), "backend_url": "http://127.0.0.1:8001",
         "frontend_url": "http://127.0.0.1:5174",
         "backend_healthy": available("http://127.0.0.1:8001/api/health"),
         "frontend_healthy": available("http://127.0.0.1:5174"),

@@ -17,8 +17,13 @@ class QueryState(TypedDict, total=False):
     route_context: str
     short_term_context: str
     recent_result_context: str
+    recent_result_candidates: str
+    analysis_result_ids: list[str]
+    analysis_mode: str
     analysis_context: str
     analysis_sources: list[dict[str, Any]]
+    analysis_evidence: list[dict[str, Any]]
+    analysis_evidence_gaps: list[str]
     intent: dict[str, Any]
     direct_response: str
     response_type: str
@@ -43,3 +48,5 @@ class QueryState(TypedDict, total=False):
     business_skills: list[str]
     required_questions: list[str]
     reusable_evidence: list[dict[str, Any]]
+    task_understanding: dict[str, Any]
+    time_context: dict[str, Any]

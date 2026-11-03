@@ -57,6 +57,13 @@ class SchemaGraphBuilder:
                 "role": hit.get("field_role", ""),
                 "source": hit.get("source", "retrieval"),
                 "score": hit.get("score", 0),
+                # Keep the authorized value evidence in the single field graph.
+                # The SQL prompt no longer repeats raw retrieval documents.
+                **{key: hit[key] for key in (
+                    "samples", "profile", "data_profile", "aliases", "coverage",
+                    "null_semantics", "snapshot_id", "version", "metadata_version",
+                    "schema_version", "content_hash",
+                ) if key in hit},
             }
 
         # 日期检索未命中时，仍给已选表提供真实的时间列，避免模型探查
@@ -114,9 +121,13 @@ class SchemaGraphBuilder:
         # and paraphrase physical definitions even when retrieval was correct.
         for field in fields.values():
             definition = self._field_definition(field['table_id'], field['name'])
-            for key in ('aggregation', 'sql_type', 'unit', 'nullable', 'enum_values'):
+            for key in ('aggregation', 'sql_type', 'unit', 'nullable', 'enum_values', 'enum_descriptions', 'enum_metadata_source', 'enum_metadata_conflict',
+                        'aliases', 'data_profile', 'coverage', 'null_semantics',
+                        'snapshot_id', 'version', 'metadata_version', 'schema_version', 'content_hash'):
                 if key in definition:
                     field[key] = definition[key]
+            if isinstance(definition.get('data_profile'), dict):
+                field.setdefault('samples', definition['data_profile'].get('sample_values', []))
 
         tables = [
             {

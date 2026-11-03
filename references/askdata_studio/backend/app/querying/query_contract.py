@@ -23,6 +23,7 @@ class MetricContract(BaseModel):
 
     name: str = Field(min_length=1)
     definition: str = ''
+    output_columns: list[str] = Field(default_factory=list, description='该业务度量在最终SELECT中的实际输出别名；不是新增SQL字段')
     source_fields: list[str] = Field(min_length=1)
     aggregation: Literal["sum", "avg", "count", "count_distinct", "min", "max", "derived", "none"]
 
@@ -52,6 +53,19 @@ class TimeRangeContract(BaseModel):
     end_inclusive: bool | None = Field(default=None, description='false为排他终点；true为包含终点日期全天；省略仅用于旧格式兼容，不能认证业务时间完整性')
 
 
+class DerivedDimensionContract(BaseModel):
+    """Server-observed SQL lineage, never a model's assertion of correctness."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    output_name: str = Field(min_length=1)
+    expression: str = Field(min_length=1)
+    source_fields: list[str]
+    source_expressions: list[str] = Field(default_factory=list)
+    kind: Literal['expression', 'literal', 'union']
+    role: Literal['time', 'dimension']
+
+
 class QueryContract(BaseModel):
     """模型声明的单次查询意图；通过校验后仍只代表 Schema 层可信。"""
 
@@ -62,6 +76,7 @@ class QueryContract(BaseModel):
     tables: list[str] = Field(min_length=1)
     metrics: list[MetricContract]
     dimensions: list[str]
+    derived_dimensions: list[DerivedDimensionContract] = Field(default_factory=list)
     filters: list[FilterContract]
     time_range: TimeRangeContract | None
     time_ranges: list[TimeRangeContract] = Field(default_factory=list)
@@ -84,11 +99,13 @@ class QueryContractValidator:
         access_scope: dict[str, Any],
         validation_context: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        from .query_protocol import _SqlLineage, complete_contract
+        raw, protocol_normalizations = complete_contract(raw, sql, original_question, database, schema_graph)
         try:
             contract = QueryContract.model_validate(raw)
         except ValidationError as exc:
             raise ValueError(f"query_contract结构不完整或无效：{exc.errors(include_url=False)}") from exc
-        normalizations: list[dict[str, Any]] = []
+        normalizations: list[dict[str, Any]] = list(protocol_normalizations)
         pending_checks: list[dict[str, Any]] = []
 
         def normalize(path: str, before: Any, after: Any, reason: str) -> None:
@@ -115,8 +132,20 @@ class QueryContractValidator:
             raise ValueError("总体汇总粒度不能同时声明分组维度")
         if contract.grain in {"dimension", "day", "week", "month"} and not contract.dimensions:
             raise ValueError("分组或时间粒度缺少维度字段")
-        if re.search(r"20\d{2}[-/年]\d{1,2}", original_question) and not contract.time_range and not contract.time_ranges:
+        reporting_periods = None
+        if (validation_context or {}).get('postprocess') is not None:
+            from .sql_output_protocol import normalize_postprocess
+            # A typed, actually executed state calculation applies reporting
+            # periods after reconstruction. Raw history must retain its opening
+            # balance; no ordinary SQL or permission checks are relaxed.
+            reporting_periods = normalize_postprocess(validation_context['postprocess'])['periods']
+        if (re.search(r"20\d{2}[-/年]\d{1,2}", original_question)
+                and not contract.time_range and not contract.time_ranges and not reporting_periods):
             raise ValueError("用户指定了日期，但query_contract缺少时间范围")
+        if reporting_periods:
+            pending('postprocessed_reporting_periods', '报告期间在受控状态计算中应用；原始台账不按月份裁剪',
+                    periods=reporting_periods)
+
 
         scope = AccessScope.from_dict(access_scope)
         graph_tables = {
@@ -131,9 +160,10 @@ class QueryContractValidator:
             contract.tables[index] = canonical
         declared = set(contract.tables)
         if len(declared) != len(contract.tables) or not declared <= set(graph_tables):
-            raise ValueError("query_contract引用了Schema图之外的表或重复表")
+            raise ValueError(f'query_contract引用了Schema图之外的表或重复表：{sorted(declared-set(graph_tables))}；'
+                             f'当前授权物理表名：{sorted(graph_tables)}，内部ID不能直接作为SQL表名')
         if any(not scope.allows_table(database, graph_tables[name]) for name in declared):
-            raise ValueError("query_contract引用了无权访问的表")
+            raise PermissionError("query_contract引用了无权访问的表")
 
         available_definitions = {
             physical_table_name(table): table
@@ -159,6 +189,9 @@ class QueryContractValidator:
             metric.source_fields = [canonical_field(f'metrics.{index}.source_fields.{position}', name)
                                     for position, name in enumerate(metric.source_fields)]
         contract.dimensions = [canonical_field(f'dimensions.{index}', name) for index, name in enumerate(contract.dimensions)]
+        for index, item in enumerate(contract.derived_dimensions):
+            item.source_fields = [canonical_field(f'derived_dimensions.{index}.source_fields.{position}', name)
+                                  for position, name in enumerate(item.source_fields)]
         for index, item in enumerate(contract.filters):
             item.field = canonical_field(f'filters.{index}.field', item.field)
         for index, item in enumerate(([contract.time_range] if contract.time_range else []) + contract.time_ranges):
@@ -167,7 +200,7 @@ class QueryContractValidator:
         def field_definition(reference: str) -> dict[str, Any]:
             definition = known_fields.get(reference)
             if definition is None:
-                raise ValueError(f"query_contract引用了不存在的字段：{reference}；引用必须为table.physical_field，不能使用SQL别名或CTE派生列")
+                raise ValueError(f"query_contract引用了不存在的字段：{reference}；引用必须为table.physical_field，不能使用SQL别名或CTE派生列；当前来源可用字段：{sorted(known_fields)}")
             return definition
 
         def normalized_literal(reference: str, value: Any) -> tuple[str, Any]:
@@ -193,13 +226,24 @@ class QueryContractValidator:
             # SQL identifiers are case-insensitive; stored string values are not.
             return ('literal', str(value).lower() if isinstance(value, bool) else str(value))
 
+        literal_dimensions = {item.output_name for item in contract.derived_dimensions if not item.source_fields}
+        derived_sources = {source for item in contract.derived_dimensions for source in item.source_fields}
+        for item in contract.derived_dimensions:
+            for reference in item.source_fields:
+                field_definition(reference)  # Every origin still needs permission/schema validation.
         for reference in contract.dimensions:
+            if reference in literal_dimensions:
+                pending('literal_dimension_not_proven', 'SQL输出的常量分组标签没有物理来源，不证明业务期间或分类正确', output=reference)
+                continue
             field = field_definition(reference)
             if field.get("role") not in {"dimension", "time", "filter", "identifier", "foreign_key"}:
-                raise ValueError(f"字段不能作为分析维度：{reference}")
+                if reference in derived_sources:
+                    pending('derived_dimension_semantics_not_proven', '分组表达式使用了真实数值来源，需核对分组规则的业务含义', field=reference)
+                else:
+                    raise ValueError(f"字段不能作为分析维度：{reference}")
         if contract.grain in {"day", "week", "month"} and not any(
             field_definition(reference).get("role") == "time"
-            for reference in contract.dimensions
+            for reference in contract.dimensions if reference not in literal_dimensions
         ):
             raise ValueError("时间聚合粒度缺少Schema时间维度")
         for item in contract.filters:
@@ -307,6 +351,7 @@ class QueryContractValidator:
         sql = self.engine._validate_sql(database, sql, scope)
         statement = sqlglot.parse_one(sql, read='duckdb')
         scopes = traverse_scope(statement)
+        sql_lineage = _SqlLineage(scopes, known_fields)
         sql_tables = {table_names.get(source.name.casefold(), source.name)
                       for query_scope in scopes for source in query_scope.sources.values()
                       if isinstance(source, exp.Table)}
@@ -338,13 +383,15 @@ class QueryContractValidator:
                           value_only: bool = False) -> set[str]:
             if scope is None:
                 return set()
+            if not value_only:
+                observed = sql_lineage.resolve(column, scope, seen)
+                return observed['fields'] if not observed['unresolved'] else set()
             seen = set(seen or ())
             key = (id(scope), column.table, column.name)
             if key in seen:
                 return set()
             seen.add(key)
-            sources = [(alias, source) for alias, (_, source) in scope.selected_sources.items()
-                       if not column.table or alias.casefold() == column.table.casefold()]
+            sources = sql_lineage.sources(column, scope)
             found = set()
             for alias, source in sources:
                 if isinstance(source, exp.Table):
@@ -352,6 +399,14 @@ class QueryContractValidator:
                     if ref in known_fields:
                         found.add(ref)
                 elif isinstance(source, Scope):
+                    if source.union_scopes:
+                        names = source.outer_columns or [projection.alias_or_name for projection in source.expression.selects]
+                        positions = [index for index, name in enumerate(names) if name.casefold() == column.name.casefold()]
+                        if len(positions) == 1:
+                            for branch in source.union_scopes:
+                                if positions[0] < len(branch.expression.selects):
+                                    found.update(value_refs(branch.expression.selects[positions[0]], branch, seen))
+                        continue
                     projections = source.expression.selects
                     names = source.outer_columns or [projection.alias_or_name for projection in projections]
                     for name, projection in zip(names, projections):
@@ -408,19 +463,48 @@ class QueryContractValidator:
 
         sql_columns = refs(statement)
         def count_star_binding(metric: MetricContract, node: exp.Expression) -> bool:
-            if metric.aggregation != 'count' or len(metric.source_fields) != 1 or len(declared) != 1:
+            if metric.aggregation != 'count' or len(metric.source_fields) != 1:
                 return False
             table, column = metric.source_fields[0].split('.', 1)
             if column not in definitions.get(table, {}).get('primary_key', []):
                 return False
             for count in node.find_all(exp.Count):
                 scope = node_scope(count)
-                sources = [source for _, source in scope.selected_sources.values()] if scope else []
-                if isinstance(count.this, exp.Star) and len(sources) == 1 and isinstance(sources[0], exp.Table) and sources[0].name.casefold() == table.casefold():
+                if not isinstance(count.this, exp.Star) or scope is None:
+                    continue
+                # COUNT(non-null PK) and COUNT(*) count the SAME joined rows,
+                # even with fanout. This does not prove COUNT(DISTINCT PK), or
+                # that the joined row set is the right business population.
+                owner_aliases = [alias for alias, (_, source) in scope.selected_sources.items()
+                                 if isinstance(source, exp.Table) and source.name.casefold() == table.casefold()]
+                base = scope.expression.args.get('from_')
+                nonnull = {base.this.alias_or_name} if base and base.this else set()
+                for join in scope.expression.args.get('joins') or []:
+                    alias, side = join.this.alias_or_name, str(join.args.get('side') or '').upper()
+                    if side == 'FULL':
+                        nonnull.clear()
+                    elif side == 'RIGHT':
+                        nonnull = {alias}
+                    elif side != 'LEFT':
+                        nonnull.add(alias)
+                if len(owner_aliases) == 1 and owner_aliases[0] in nonnull:
+                    if scope.expression.args.get('joins'):
+                        pending('joined_row_count_not_entity_count',
+                                'COUNT(*)等价于当前连接结果的非空主键计数，不代表去重实体数；连接粒度仍需核对',
+                                metric=metric.name)
                     return True
             return False
 
         metric_bindings = []
+        output_names = {p.alias_or_name for p in statement.selects if p.alias_or_name}
+        for metric in contract.metrics:
+            if metric.output_columns:
+                actual = [name for name in metric.output_columns if name in output_names]
+                metric_bindings.append({'declared_name': metric.name, 'source_fields': metric.source_fields,
+                    'output_aliases': actual, 'binding_basis': 'declared_actual_output_not_semantic_proof'})
+                if len(actual) != len(metric.output_columns):
+                    pending('measurement_output_unbound', '声明的部分输出列不存在，未绑定或猜测对应关系',
+                            metric=metric.name, missing=sorted(set(metric.output_columns)-output_names))
         for metric in alias_metric_checks:
             # Bind outputs by actual physical lineage, independently of labels.
             bound = [projection for projection in statement.selects
@@ -459,7 +543,24 @@ class QueryContractValidator:
                     a, b = next(iter(left)), next(iter(right))
                     equivalences.setdefault(a, set()).add(b)
                     equivalences.setdefault(b, set()).add(a)
+        # A grouping/filter/join dependency is not the value being measured.
+        # Only waive an overinclusive declaration when the actual SQL proves
+        # that the field is contextual and never an aggregate value input.
+        contextual_refs = set()
+        for query_scope in scopes:
+            expression = query_scope.expression
+            for key in ('group', 'where', 'having', 'qualify'):
+                if expression.args.get(key) is not None:
+                    contextual_refs.update(refs(expression.args[key]))
+            for join in expression.args.get('joins') or []:
+                if join.args.get('on') is not None:
+                    contextual_refs.update(refs(join.args['on']))
+        aggregate_value_refs = {ref for aggregate in statement.find_all(exp.AggFunc)
+                                for ref in value_refs(aggregate)}
         for metric, allowed_sources in registered_source_checks:
+            projections = [p for p in statement.selects if p.alias_or_name in metric.output_columns]
+            used_as_value = ({ref for projection in projections for ref in value_refs(projection)}
+                             if projections else aggregate_value_refs)
             for reference in metric.source_fields:
                 reachable, frontier = {reference}, [reference]
                 while frontier:
@@ -467,6 +568,11 @@ class QueryContractValidator:
                         reachable.add(neighbor)
                         frontier.append(neighbor)
                 if not reachable & allowed_sources:
+                    if reference in contextual_refs and reference not in used_as_value:
+                        pending('metric_context_dependency',
+                            '该额外字段仅参与分组/筛选/关联，不作为聚合取值来源；仍需核对统计集合与连接影响',
+                            metric=metric.name, field=reference, role='query_context_not_measure_value')
+                        continue
                     raise ValueError(f"指标来源超出公开依赖且无等值内连接依据：{metric.name} / {reference}")
         def expanded_refs(references: set[str]) -> set[str]:
             output, frontier = set(references), list(references)
@@ -491,15 +597,8 @@ class QueryContractValidator:
         reverse = {exp.EQ: exp.EQ, exp.NEQ: exp.NEQ, exp.GT: exp.LT, exp.GTE: exp.LTE, exp.LT: exp.GT, exp.LTE: exp.GTE}
 
         def literal_value(node: exp.Expression | None) -> Any:
-            while isinstance(node, (exp.Cast, exp.Paren)):
-                node = node.this
-            if isinstance(node, exp.Literal):
-                return node.this
-            if isinstance(node, exp.Boolean):
-                return bool(node.this)
-            if isinstance(node, exp.Neg) and isinstance(node.this, exp.Literal):
-                return '-' + str(node.this.this)
-            return None
+            from .sql_literals import constant_value
+            return constant_value(node)
 
         def implies(node: exp.Expression, reference: str, kinds: tuple[type[exp.Expression], ...],
                     wanted: tuple, negated: bool = False, allow_transformed: bool = False) -> bool:
@@ -577,8 +676,28 @@ class QueryContractValidator:
                     else len(wanted) == 1 and actual == set(wanted))
 
         def global_value_conflict(reference: str, kinds: tuple[type[exp.Expression], ...], wanted: tuple) -> bool:
-            return any(id(node_scope(node)) in data_scopes and required_value_conflict(node, reference, kinds, wanted)
-                       for node in where_nodes)
+            conflicts = [node for node in where_nodes if id(node_scope(node)) in data_scopes
+                         and required_value_conflict(node, reference, kinds, wanted)]
+            if not conflicts:
+                return False
+            matching = [node for node in where_nodes if id(node_scope(node)) in data_scopes
+                        and implies(node, reference, kinds, wanted)]
+            # The same physical column can describe independent relation
+            # instances (e.g. opening and reply events joined after aggregation).
+            # Flattening their WHEREs invents a global contradiction. Retain
+            # explicit uncertainty about which component the metric binds to.
+            # Same-scope contradictions and alternative UNION populations do
+            # not qualify for this independent-component case.
+            conflict_scopes = {id(node_scope(node)) for node in conflicts}
+            matching_scopes = {id(node_scope(node)) for node in matching}
+            if (matching_scopes and conflict_scopes.isdisjoint(matching_scopes)
+                    and any(statement.find_all(exp.Join))
+                    and not any(statement.find_all(exp.SetOperation))):
+                pending('filter_relation_scope_not_proven',
+                        '同一物理字段在独立关联分量使用不同条件；需按指标血缘核对各分量，不能把条件展平成总体冲突',
+                        field=reference)
+                return False
+            return True
 
         def has_predicate(reference: str, kinds: tuple[type[exp.Expression], ...], values: list[Any]) -> bool:
             wanted = tuple(normalized_literal(reference, value) for value in values)
@@ -605,6 +724,35 @@ class QueryContractValidator:
                 return True
             return False
 
+        def direct_boundary_conflict(reference: str, kind: type[exp.Expression], value: Any) -> bool:
+            """A clear bound cannot be obscured by an unrelated complex JOIN.
+
+            Only required AND predicates with one unique literal bound are
+            decisive here. OR branches and conflicting per-period branches
+            remain unproven rather than being flattened into one range.
+            """
+            direction = {exp.GT, exp.GTE} if kind in {exp.GT, exp.GTE} else {exp.LT, exp.LTE}
+
+            def atoms(node):
+                if isinstance(node, (exp.Where, exp.Having, exp.Paren)):
+                    return atoms(node.this)
+                if isinstance(node, exp.And):
+                    return [*atoms(node.this), *atoms(node.expression)]
+                if type(node) not in direction:
+                    return []
+                field_node, actual = node.this, literal_value(node.expression)
+                actual_kind = type(node)
+                if reference not in refs(field_node) and reference in refs(node.expression):
+                    field_node, actual = node.expression, literal_value(node.this)
+                    actual_kind = reverse.get(actual_kind, actual_kind)
+                if (actual_kind not in direction or actual is None or not identity_column(field_node)
+                        or reference not in refs(field_node)):
+                    return []
+                return [(actual_kind, normalized_literal(reference, actual))]
+
+            actual = {bound for node in where_nodes if id(node_scope(node)) in data_scopes for bound in atoms(node)}
+            return len(actual) == 1 and (kind, normalized_literal(reference, value)) not in actual
+
         def predicate_is_unproven(reference: str, kind: type[exp.Expression], values: list[Any]) -> bool:
             """A limited matcher failing is not evidence that SQL is wrong.
 
@@ -614,6 +762,13 @@ class QueryContractValidator:
             wanted = tuple(normalized_literal(reference, value) for value in values)
             if global_value_conflict(reference, (kind,), wanted):
                 return False
+            if kind in {exp.GT, exp.GTE, exp.LT, exp.LTE} and len(values) == 1:
+                if direct_boundary_conflict(reference, kind, values[0]):
+                    return False
+            if kind == exp.Between and len(values) == 2:
+                if (direct_boundary_conflict(reference, exp.GTE, values[0])
+                        or direct_boundary_conflict(reference, exp.LTE, values[1])):
+                    return False
             atoms = [node for predicate in predicate_scopes for node in predicate.walk()
                      if isinstance(node, tuple(operators.values())) and reference in refs(node)]
             if not atoms:
@@ -660,6 +815,8 @@ class QueryContractValidator:
                 or (actual_values == wanted and {actual_kind, kind} == {exp.EQ, exp.NEQ}))
             return not explicit_mismatch
         for reference in [*contract.dimensions, *(field for metric in contract.metrics for field in metric.source_fields)]:
+            if reference in literal_dimensions:
+                continue
             if reference not in sql_columns and not any(reference in metric.source_fields and count_star_binding(metric, statement) for metric in contract.metrics):
                 raise ValueError(f"query_contract字段没有出现在SQL中：{reference}")
         for item in contract.filters:
@@ -762,7 +919,10 @@ class QueryContractValidator:
                 if not matched_end:
                     missing.append(f'时间终点：{time_range.end}')
             if missing:
-                if complex_range:
+                explicit_conflict = ((time_range.start and direct_boundary_conflict(field, exp.GTE, time_range.start))
+                    or (time_range.end and direct_boundary_conflict(field, exp.LTE if time_range.end_inclusive else exp.LT,
+                                                                   time_range.end)))
+                if complex_range and not explicit_conflict:
                     pending('time_range_expression_not_proven', '时间条件使用转换或函数，需核对与声明边界等价性', field=field, missing=missing)
                 else:
                     raise ValueError('SQL缺少声明的' + '；'.join(missing))
@@ -818,6 +978,7 @@ class QueryContractValidator:
                     "normalized_sql": sql,
                     "tables": sorted(sql_tables), "source_fields": sorted(sql_columns),
                     "output_columns": [projection.alias_or_name for projection in statement.selects],
+                    "derived_dimensions": [item.model_dump(mode='json') for item in contract.derived_dimensions],
                     "predicates": [{'sql': node.sql(dialect='duckdb'), 'fields': sorted(refs(node))}
                                    for node in filter_scopes],
                     "aggregations": [{'operation': node.key, 'sql': node.sql(dialect='duckdb'), 'fields': sorted(refs(node))}

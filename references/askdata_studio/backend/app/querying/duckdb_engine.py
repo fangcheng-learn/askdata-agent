@@ -40,6 +40,7 @@ class DuckDbEngine:
     def __init__(self, database_root: Path | None = None) -> None:
         self.database_root = database_root or DATABASE_ROOT
         self.results: dict[str, dict[str, Any]] = {}
+        self.result_store: Any = None
 
     def execute(
         self,
@@ -74,6 +75,13 @@ class DuckDbEngine:
                 "task_id": budget.task_id if budget else None, "datasource_id": database,
                 "sql": safe_sql, "columns": columns, "rows": full_rows, "complete": complete,
                 "total_rows": len(full_rows) if complete else None}
+            if self.result_store and self.results[ref]['user_id'] and self.results[ref]['task_id']:
+                try:
+                    self.result_store.save_result(ref, self.results[ref])
+                except Exception as exc:
+                    self.results.pop(ref, None)
+                    return SqlExecution(safe_sql, False, error='结果持久化失败；停止后续执行，不重试SQL',
+                                        complete=False, error_kind='storage')
             return SqlExecution(safe_sql, True, columns, full_rows[:200],
                 total_rows=len(full_rows) if complete else None, preview_truncated=len(raw_rows)>200,
                 complete=complete, result_ref=ref)
@@ -83,6 +91,9 @@ class DuckDbEngine:
     def read_result(self, ref: str, user_id: str, task_id: str, datasource_id: str,
                     offset: int = 0, limit: int = 200) -> dict[str, Any]:
         item = self.results.get(ref)
+        if item is None and self.result_store:
+            item = self.result_store.load_result(ref, user_id, task_id, datasource_id)
+            self.results[ref] = item
         if not item:
             raise KeyError(ref)
         if (item["user_id"], item["task_id"], item["datasource_id"]) != (user_id, task_id, datasource_id):
@@ -100,6 +111,8 @@ class DuckDbEngine:
         cloned = uuid.uuid4().hex
         self.results[cloned] = {**self.results[ref], 'task_id': task_id,
                                 'rows': [dict(row) for row in self.results[ref]['rows']]}
+        if self.result_store:
+            self.result_store.save_result(cloned, self.results[cloned])
         return cloned
 
     def preflight(

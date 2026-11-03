@@ -1,16 +1,21 @@
 from __future__ import annotations
 
+from .agent_configuration_runtime import effective_prompt
+from .prompt_defaults import PREPROCESS_SYSTEM
+
 import logging
+import re
+import json
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 
 from .errors import PipelineStageError
 from .model_client import ModelClient
 from .runtime_budget import BudgetStop, current_budget
+from .structured_output import using_output_schema
+from .preprocessing_output import PreparedOutput, RouteName, ResponseType
 
 
-RouteName = Literal["data_qa", "database_query", "direct_response"]
-ResponseType = Literal["answer", "clarification"]
 logger = logging.getLogger(__name__)
 
 
@@ -45,6 +50,10 @@ class PreparedRequest:
     needs_planner: bool = False
     business_skills: list[str] = field(default_factory=list)
     required_questions: list[str] = field(default_factory=list)
+    task_understanding: dict[str, Any] = field(default_factory=dict)
+    analysis_task_ids: list[str] = field(default_factory=list)
+    analysis_result_ids: list[str] = field(default_factory=list)
+    analysis_mode: str = "explanation"
 
 
 class RequestPreprocessor:
@@ -57,53 +66,11 @@ class RequestPreprocessor:
         budget = current_budget.get()
         if budget:
             budget.model_node = "preprocess"
-        system = """你是问数系统的请求预处理器，一次完成上下文聚合、意图判断和必要回复。
-
-意图边界：
-1. database_query：用户明确要求查询新的数据库数据，例如获取指标、明细、排名、统计或对比。
-2. data_qa：用户明确要求解释或分析上下文中已经存在的查询结果、表格或数据，不需要查询新数据。
-3. direct_response：闲聊、一般交流、能力询问、普通知识问题，以及需要先明确用户意图的请求。
-   经营变化原因调查不是灰色地带，应由调查流程安排查询；如果缺少的信息会影响
-   意图判断，则直接提出一个简短的自然语言问题。不要生成选项，不要假装已经查询数据。
-
-上下文聚合：只在当前问题依赖上文时理解和补全语义，不要拼接无关历史。
-省略年份等条件且当前会话有唯一明确取值时，继承该条件；历史结果不完整不意味着年份等条件不可复用。
-缺参数时保留原始目标并明确澄清，不生成“[指定年份]”之类的占位查询去检索或执行。
-仅当action=database_query时，将问题改写为可独立理解的standalone_query，并提取字段级
-Schema检索信息。data_qa和direct_response不提取Schema信息。
-
-同时输出needs_planner、business_skills、required_questions。
-- 简单查数、排名、已有结果解释不启用Planner；多步经营变化原因调查启用。
-- 原因调查即使先复用已有结果也可needs_planner=true，不将整个任务锁死在初始路由。
-- 明确要求解释经营指标下降／上升原因时，保留原因调查目标并启用Planner；不能改写成仅查询两期总额和环比。
-- business_skills仅可选business_diagnosis、goal_analysis、inventory_risk_check；简单查数通常为空。
-- 缺目标值等会改变答案的参数时，进入needs_planner=true保留任务并澄清；不要普通回答后丢失任务。
-- required_questions列本轮必须回答的具体问题；新问题不强继承旧条件，省略/追问继承时间范围与口径。
-- 多步调查须拆成具体交付要求，不只复述整段原问；例如分别核实变化、定位贡献及检验必要解释。原始请求由程序保留，不因拆分丢失独立目标。
-只返回JSON：
-{
-  "action":"database_query|data_qa|direct_response",
-  "confidence":0.0,
-  "needs_planner":false,
-  "business_skills":[],
-  "required_questions":[],
-  "reason":"...",
-  "standalone_query":"问数时填写，其他情况为空字符串",
-  "rewritten":false,
-  "response":"仅direct_response填写自然语言回答或澄清问题",
-  "response_type":"answer|clarification",
-  "retrieval":{
-    "retrieval_terms":["用于BM25和Embedding的简短Schema检索词，不要写完整句子"],
-    "metrics":[], "dimensions":[], "filters":[],
-    "time_expressions":[], "operations":[]
-  }
-}
-database_query必须填写standalone_query和retrieval，response为空。
-data_qa必须清空standalone_query、response和retrieval。
-direct_response必须填写response，并清空standalone_query和retrieval。不要猜表名。"""
+        system = effective_prompt('preprocess', PREPROCESS_SYSTEM)
         user = f"当前问题：{query}\n近期轻量上下文：{recent_context or '无'}"
         try:
-            payload = self.model_client.chat_json(system, user)
+            with using_output_schema('entry_understanding', self._output_schema(recent_context)):
+                payload = self.model_client.chat_json(system, user)
         except BudgetStop:
             raise
         except RuntimeError as exc:
@@ -120,27 +87,92 @@ direct_response必须填写response，并清空standalone_query和retrieval。�
                 source="model_unavailable_fallback",
             )
         try:
-            return self._parse(payload, query)
+            return self._parse(payload, query, recent_context)
         except (ValueError, KeyError, TypeError) as exc:
             raise PipelineStageError("request_preprocessing", str(exc)) from exc
 
-    def _parse(self, payload: dict[str, Any], original_query: str) -> PreparedRequest:
+    @staticmethod
+    def _output_schema(recent_context: str) -> dict:
+        schema = PreparedOutput.model_json_schema()
+        # route_context is serialized server JSON after the time/source
+        # preamble. Values inside user text remain JSON-escaped, never parsed
+        # as new reference candidates.
+        start = recent_context.find('{"recent_turns"')
+        if start < 0:
+            return schema
+        try:
+            catalog, _ = json.JSONDecoder().raw_decode(recent_context[start:])
+        except (ValueError, TypeError):
+            return schema
+        headers = [*(catalog.get('recent_turns') or []), *(catalog.get('selected_table_headers') or [])]
+        task_ids = list(dict.fromkeys(str(h.get('turn_id') or h.get('task_id')) for h in headers
+                                     if h.get('turn_id') or h.get('task_id')))
+        result_ids = list(dict.fromkeys(str(e['result_id']) for h in headers
+                          for e in h.get('available_evidence') or [] if e.get('result_id')))
+        for key, choices in [('analysis_task_ids', task_ids), ('analysis_result_ids', result_ids)]:
+            if choices:
+                schema['properties'][key]['items']['enum'] = choices
+        return schema
+
+    def _parse(self, payload: dict[str, Any], original_query: str, recent_context: str = "") -> PreparedRequest:
         action = str(payload["action"])
-        if action not in {"data_qa", "database_query", "direct_response"}:
+        if action not in {"data_qa", "database_query", "direct_response", "metadata_query"}:
             raise ValueError(f"不支持的路由结果：{action}")
 
         confidence = max(0.0, min(1.0, float(payload.get("confidence", 0.8))))
         reason = str(payload.get("reason") or "模型完成请求预处理")
 
         common = {
-            "needs_planner": bool(payload.get("needs_planner", False)),
+            "analysis_mode": payload.get("analysis_mode") if payload.get("analysis_mode") in {"none", "fact", "explanation", "report"} else "explanation",
+            'analysis_task_ids': list(dict.fromkeys(self._strings(payload.get('analysis_task_ids'))))[:5],
+            'analysis_result_ids': list(dict.fromkeys(self._strings(payload.get('analysis_result_ids')))),
+            "needs_planner": bool(payload.get("needs_investigation", payload.get("needs_planner", False))),
             "business_skills": [name for name in self._strings(payload.get("business_skills"))
                                 if name in {"business_diagnosis", "goal_analysis", "inventory_risk_check"}],
             "required_questions": list(dict.fromkeys(self._strings(payload.get("required_questions")) or [original_query])),
+            "task_understanding": payload.get('task_understanding') if isinstance(payload.get('task_understanding'), dict) else {},
         }
+        if payload.get('response_type') == 'clarification':
+            # A declared question to the user is an unfinished task, even if
+            # the router also emitted needs_investigation=false. Let the
+            # existing main agent decide/ask the necessary clarification and
+            # persist the same task/budget. Do not infer a missing metric or
+            # period from wording, and never mark a free-text question complete.
+            common['needs_planner'] = True
+            reason += '；入口声明仍需澄清，交主Agent保存原任务并确认必要条件'
+        if (action == 'direct_response' and payload.get('response_type', 'answer') == 'answer'
+                and (common['analysis_task_ids'] or common['analysis_result_ids']
+                     or payload.get('analysis_mode') in {'fact', 'explanation', 'report'})):
+            # A declared dependency on real results belongs to the evidence
+            # reader, never to the router's free-form answer channel.
+            action = 'data_qa'
+            reason += '；已声明依赖结果，交由DataQa读取实际证据'
+        if common['needs_planner']:
+            # Routing is not authority to replace a user's question with a
+            # causal narrative. Parsed scope/time can inherit context, while
+            # the investigation's goal remains the verbatim user request.
+            understanding = dict(common['task_understanding'])
+            understanding.update(goal=original_query, questions=[original_query],
+                                 user_statement={'quote': original_query, 'source': 'current_user_message',
+                                                 'status': 'unverified'})
+            grounded = []
+            for finding in understanding.get('known_findings') or []:
+                quote = (finding.get('quote') if isinstance(finding, dict) else finding)
+                if not isinstance(quote, str) or not quote.strip():
+                    continue
+                quote = quote.strip()
+                source = ('current_user_message' if quote in original_query else
+                          'recent_context' if quote in recent_context else None)
+                if source and not any(item['quote'] == quote and item['source'] == source for item in grounded):
+                    grounded.append({'quote': quote, 'source': source, 'status': 'unverified'})
+            understanding['known_findings'] = grounded
+            common['task_understanding'] = understanding
+            common['required_questions'] = [original_query]
+        if action == 'metadata_query':
+            return PreparedRequest(action=action, confidence=confidence, reason=reason, standalone_query=original_query)
         if action == "data_qa":
             return PreparedRequest(action="data_qa", confidence=confidence, reason=reason,
-                standalone_query=str(payload.get("standalone_query") or original_query) if common["needs_planner"] else "", **common)
+                standalone_query=original_query if common["needs_planner"] else "", **common)
 
         if action == "direct_response":
             response = str(payload.get("response") or "").strip()
@@ -159,6 +191,8 @@ direct_response必须填写response，并清空standalone_query和retrieval。�
             )
 
         standalone = str(payload.get("standalone_query") or original_query).strip()[:800]
+        if common['needs_planner']:
+            standalone = original_query
         raw = payload.get("retrieval") if isinstance(payload.get("retrieval"), dict) else {}
         retrieval = RetrievalIntent(
             retrieval_terms=self._strings(raw.get("retrieval_terms")),
@@ -174,7 +208,7 @@ direct_response必须填写response，并清空standalone_query和retrieval。�
             confidence=confidence,
             reason=reason,
             standalone_query=standalone,
-            rewritten=bool(payload.get("rewritten", standalone != original_query.strip())),
+            rewritten=False if common['needs_planner'] else bool(payload.get("rewritten", standalone != original_query.strip())),
             retrieval=retrieval,
         )
 

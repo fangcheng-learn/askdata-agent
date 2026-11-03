@@ -55,6 +55,9 @@ class Settings:
     timeout: int = int(os.getenv("LLM_TIMEOUT", "60"))
     temperature: float = float(os.getenv("LLM_TEMPERATURE", "0"))
     max_retries: int = int(os.getenv("LLM_MAX_RETRIES", "2"))
+    structured_output_enabled: bool = os.getenv("LLM_STRUCTURED_OUTPUT_ENABLED", "true").lower() in {"1", "true", "yes", "on"}
+    model_trace_dir: str = os.getenv("MODEL_TRACE_DIR", "")
+    llm_stream: bool = os.getenv("LLM_STREAM", "false").lower() in {"1", "true", "yes", "on"}
     schema_recall_threshold: float = float(os.getenv("SCHEMA_RECALL_THRESHOLD", "0.55"))
     bm25_top_k: int = int(os.getenv("BM25_TOP_K", "30"))
     dense_top_k: int = int(os.getenv("DENSE_TOP_K", "30"))
@@ -75,7 +78,7 @@ class Settings:
         os.getenv("SHORT_TERM_MIN_RECENT_TURNS", "5")
     )
     session_archive_enabled: bool = os.getenv(
-        "SESSION_ARCHIVE_ENABLED", "false"
+        "SESSION_ARCHIVE_ENABLED", "true"
     ).lower() in {"1", "true", "yes", "on"}
     session_archive_path: str = os.getenv(
         "SESSION_ARCHIVE_PATH", str(BASE_DIR / "data" / "session_archive.db")
@@ -83,11 +86,25 @@ class Settings:
     context_table_row_limit: int = int(os.getenv("CONTEXT_TABLE_ROW_LIMIT", "50"))
     route_context_turns: int = int(os.getenv("ROUTE_CONTEXT_TURNS", "6"))
 
+    report_content_review_enabled: bool = os.getenv("REPORT_CONTENT_REVIEW_ENABLED", "false").lower() in {"1", "true", "yes", "on"}
+
     harness_tool_limit: int = int(os.getenv("HARNESS_TOOL_LIMIT", "20"))
     harness_repair_limit: int = int(os.getenv("HARNESS_REPAIR_LIMIT", "2"))
     harness_replan_limit: int = int(os.getenv("HARNESS_REPLAN_LIMIT", "1"))
-    harness_seconds: float = float(os.getenv("HARNESS_SECONDS", "300"))
-    harness_investigation_seconds: float = float(os.getenv("HARNESS_INVESTIGATION_SECONDS", "240"))
+    harness_seconds: float = float(os.getenv("HARNESS_SECONDS", "480"))
+    harness_investigation_seconds: float = float(os.getenv("HARNESS_INVESTIGATION_SECONDS", "420"))
+    harness_react_enabled: bool = os.getenv("HARNESS_REACT_ENABLED", "true").lower() in {"1", "true", "yes", "on"}
+    harness_state_path: str = os.getenv("HARNESS_STATE_PATH", str(BASE_DIR / "data" / "harness_runtime" / "state.sqlite3"))
+    harness_state_max_bytes: int = int(os.getenv("HARNESS_STATE_MAX_BYTES", "536870912"))
+    harness_react_round_limit: int = int(os.getenv("HARNESS_REACT_ROUND_LIMIT", "8"))
+    harness_sql_generation_limit: int = int(os.getenv("HARNESS_SQL_GENERATION_LIMIT", "3"))
+    # Accepted by legacy constructors, but old HARNESS_*_TOKENS environment
+    # values no longer impose task/input/output token limits.
+    harness_model_tokens: int | None = None
+    harness_retrieval_tokens: int | None = None
+    harness_input_tokens: int | None = None
+    harness_output_tokens: int | None = None
+    harness_closing_tokens: int | None = None
 
     @property
     def session_archive_file(self) -> Path:
@@ -113,6 +130,9 @@ class Settings:
             "llm_model": self.llm_model,
             "route_model": self.route_model.strip() or self.llm_model,
             "llm_enable_thinking": self.llm_enable_thinking,
+            "llm_request_timeout_seconds": self.timeout,
+            "model_trace_enabled": bool(self.model_trace_dir),
+            "llm_stream": self.llm_stream,
             "embedding_model": self.embedding_model,
             "embedding_dimensions": self.embedding_dimensions,
             "rerank_model": self.rerank_model,
@@ -134,6 +154,18 @@ class Settings:
                 "table_row_limit": self.context_table_row_limit,
             },
             "route_context_turns": self.route_context_turns,
+            'investigation_mode': 'react_v1' if self.harness_react_enabled else 'legacy_planner',
+            'investigation_execution_protocol_version': 4 if self.harness_react_enabled else 1,
+            'structured_output_enabled': self.structured_output_enabled,
+            'sql_query_module': 'shared_batch_v1',
+            'investigation_report_mode': ('data_qa_draft_then_review' if self.report_content_review_enabled else 'agent_report_without_content_review'),
+            'report_content_review_enabled': self.report_content_review_enabled,
+            'model_budget_limits': {'mode': 'observe_only', 'enforced': False,
+                                    'chat': None, 'retrieval': None, 'input_upper_bound': None,
+                                    'output': None, 'closing_reserve': None},
+            'harness_react_round_limit': self.harness_react_round_limit,
+            'investigation_round_policy': 'query_batches',
+            'harness_sql_generation_limit': self.harness_sql_generation_limit,
         }
 
 

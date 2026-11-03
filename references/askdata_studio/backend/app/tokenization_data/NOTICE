@@ -1,0 +1,13 @@
+Qwen local tokenization assets
+
+Copyright 2023 The Qwen team, Alibaba Group. All rights reserved.
+
+The unchanged qwen.tiktoken vocabulary and upstream reference source come from
+QwenLM/Qwen-Agent, commit 31a4d36d123688581a9e9744427272b33ce940e0, under Apache
+License 2.0. The full license is included as LICENSE.qwen-agent.
+
+AskData's app/token_counting.py reuses the upstream PAT_STR and BPE file format,
+with local changes: NFC ordinary-text encoding (no special-token shortcuts),
+25 percent estimation margin, message overhead, fixed asset hash verification,
+and an explicitly labelled UTF-8-byte fallback. This is not an assertion of
+exact tokenization or billing for the closed qwen3.7 models.

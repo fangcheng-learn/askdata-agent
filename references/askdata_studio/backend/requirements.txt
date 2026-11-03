@@ -7,3 +7,4 @@ pytz>=2025.2
 mcp>=2.0,<3.0
 sse-starlette==3.0.3
 sqlglot==30.17.0
+tiktoken==0.14.0

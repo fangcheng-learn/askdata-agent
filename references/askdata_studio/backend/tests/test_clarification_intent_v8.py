@@ -133,7 +133,7 @@ class ClarificationDispatchV8Test(unittest.TestCase):
         self.assertEqual(state['standalone_query'], INVESTIGATION)
         self.assertEqual(state['required_questions'], [INVESTIGATION])
         self.assertTrue(state['needs_planner'])
-        self.assertEqual(state['business_skills'], ['business_diagnosis'])
+        self.assertEqual(state['business_skills'], [], 'Flash no longer selects business Skills; ReAct loads them')
         self.assertNotIn('year', state['workspace']['confirmed_parameters'])
         self.assertEqual(service.tasks[waiting.task_id]['result'].status, 'waiting_clarification')
 

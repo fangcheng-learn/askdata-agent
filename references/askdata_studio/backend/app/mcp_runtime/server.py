@@ -11,6 +11,7 @@ from ..database import SCHEMA, physical_table_name
 from ..querying.duckdb_engine import DuckDbEngine
 from ..security import AccessController, AccessScope
 from .. import homenova
+from ..runtime_budget import current_budget
 from .schemas import DateTimeResult, DateRangeResult
 from .tools.time_tools import DateExpression, _date_range
 from .tools import (
@@ -49,14 +50,17 @@ def create_local_mcp_server(
 
     if home_database:
         def scenario_datetime(timezone_name: Literal["Europe/Berlin", "UTC"] = "Europe/Berlin") -> DateTimeResult:
-            """返回当前快照的场景时间，绝不读取机器时钟。"""
-            now = datetime.fromisoformat(homenova.scenario(home_database)["analysis_datetime"]).astimezone(ZoneInfo(timezone_name))
+            """返回真实机器时间；同任务复用首次解析的参考时刻。"""
+            budget = current_budget.get()
+            reference = budget.reference_now if budget else ''
+            now = (datetime.fromisoformat(reference).astimezone(ZoneInfo(timezone_name))
+                   if reference else datetime.now(ZoneInfo(timezone_name)))
             return DateTimeResult(date=now.date().isoformat(), datetime=now.isoformat(timespec="seconds"), timezone=timezone_name)
 
         def scenario_date_range(expression: DateExpression,
                                 timezone_name: Literal["Europe/Berlin", "UTC"] = "Europe/Berlin") -> DateRangeResult:
-            """按当前快照的场景日期解析相对日期，起止日期包含当天。"""
-            today = datetime.fromisoformat(homenova.scenario(home_database)["analysis_datetime"]).astimezone(ZoneInfo(timezone_name)).date()
+            """按真实当前日期解析相对日期，不以快照日期替代今天。"""
+            today = datetime.fromisoformat(scenario_datetime(timezone_name).datetime).date()
             start, end = _date_range(expression, today)
             return DateRangeResult(expression=expression, start_date=start.isoformat(), end_date=end.isoformat(), timezone=timezone_name)
 
@@ -69,13 +73,13 @@ def create_local_mcp_server(
     server.tool(
         name="current_datetime",
         title="获取当前日期时间",
-        description="返回所选HomeNova快照场景日期时间（Europe/Berlin或UTC），不是机器今天。" if home_database else "获取Asia/Shanghai或UTC时区的当前日期与时间。",
+        description="返回机器真实当前日期时间（Europe/Berlin或UTC），快照场景日期不代替今天。" if home_database else "获取Asia/Shanghai或UTC时区的当前日期与时间。",
         annotations=READ_ONLY,
     )(time_handler)
     server.tool(
         name="resolve_date_range",
         title="解析相对日期范围",
-        description="将今天、昨天、本周、上周、本月、上月或今年转换为明确起止日期。",
+        description="将今天、昨天、本周、上周、本月、上月、今年或近N天／近N周转换为明确起止日期。近N日含今天，返回包含末日与排他终点；未说明最近多久先询问。",
         annotations=READ_ONLY,
     )(range_handler)
     server.tool(

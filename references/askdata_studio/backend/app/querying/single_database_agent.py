@@ -10,11 +10,12 @@ from ..mcp_runtime.client import LocalMcpClient
 from ..model_client import ModelClient
 from ..skills import SkillDefinition
 from .duckdb_engine import DuckDbEngine
-from .query_contract import QueryContractValidator
+from .sql_module import SqlQueryModule
+from .query_context import assemble_query_context
+from .measurement_context import resolve_query_requirements, repair_diagnostics
 from .metric_sources import normalize_source_clarification
 from .. import homenova
 from ..task_decisions import StepDecision, STEP_PROTOCOL_INSTRUCTION, validate_step_decision
-from ..result_references import model_result_context
 
 
 class SingleDatabaseAgent:
@@ -31,7 +32,8 @@ class SingleDatabaseAgent:
         self.model_client = model_client
         self.mcp_client_factory = mcp_client_factory
         self.skill = skill
-        self.contract_validator = QueryContractValidator(database_engine)
+        self.sql_module = SqlQueryModule(model_client, mcp_client_factory, skill, database_engine)
+        self.contract_validator = self.sql_module.contract_validator
         self.max_tool_calls = min(max_tool_calls, skill.max_tool_calls)
 
     def prepare(
@@ -47,6 +49,10 @@ class SingleDatabaseAgent:
         task_context: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         database_tool = f"query_{database}"
+        # These dependencies can be refreshed by the owning workflow (and by
+        # controlled tests); the shared module must use that current instance.
+        self.sql_module.model_client = self.model_client
+        self.sql_module.skill = self.skill
         mcp_client = self.mcp_client_factory(access_scope)
 
         # 每次请求都通过MCP tools/list获取当前工具定义。
@@ -64,31 +70,8 @@ class SingleDatabaseAgent:
                 f"没有找到数据库工具：{database_tool}",
             )
 
-        system = f"你是单数据库问数智能体。\n\n{self.skill.instructions}"
-        system += ("\nquery_contract的dimensions、time_range.field、filters.field和每个source_fields条目，"
-                   "只能使用Schema真实物理列的table.physical_field形式，表名为物理表名而非别名。"
-                   "不能填写SELECT别名（例如month/month_start）、CTE列或SQL表达式。Schema aggregation=none是未登记默认聚合，不是禁止聚合；数值metric按实际SQL声明sum/avg。原始计量使用真实字段名，definition可省略，由程序读取Schema描述。按月分组时grain=month，"
-                   "dimensions列出参与月分组的原始时间列；SQL可用DATE_TRUNC并自由命名输出列。"
-                   "同理派生指标的source_fields列底层真实列，不填计算结果别名。")
-        system += ("\n所有数据源的time_range/time_ranges统一：start包含起点，end默认不包含终点，必须填写end_inclusive=false。"
-                   "查完整自然月应从当月1日至下月1日前。日期工具end_date包含末日，排他边界直接使用它的end_exclusive，不能原样复制end_date。"
-                   "明确声明end_inclusive=true的日期表示包含末日全天；代码会规范为次日排他边界。DATE列<=末日可与<次日等价，TIMESTAMP<=末日零点不等于包含全天。")
-        if homenova.is_homenova(database):
-            system += ("\nHomeNova当前公开登记的指标按id、label或aliases识别，业务指标名称不等于物理列名。"
-                       "original_question由服务端绑定用户原文，模型不负责改写该字段。"
-                       "DuckDB日期格式化使用strftime，日期截断使用date_trunc，不支持TO_CHAR。"
-                       "可使用符合实际SQL的sum/count/count_distinct等聚合或derived；业务指标name选择registered_metrics中的id或可识别名称；definition可省略，由程序从注册信息绑定，不能用件数冒充金额。目标差额、变化量等只作为基于已登记指标的SQL展示计算，不另造业务指标定义；"
-                       "source_fields列实际SQL引用的相关底层字段，不能捏造列。登记definition中的成功支付、"
-                       "完成退款等条件是各指标分量自身的口径；遵循component_policies分别过滤再汇总，"
-                       "不能把各分量条件混成同一全局WHERE；实际筛选需写入contract.filters。多事件时间可用可选time_ranges数组声明所有分量的时间边界（每项field/start/end），也可在filters逐项声明各事件的>=与<边界；不能只声明支付时间却遗漏其他事件的实际筛选。"
-                       "使用场景时间，SQL禁止CURRENT_DATE/NOW等机器时钟。表不加库名，TIMESTAMPTZ按Europe/Berlin统计。"
-                       "金额欧分展示EUR除以100。公开注册公式不是预制SQL或结果，请自行生成查询。")
-        system += ("\nquery是本步目标，task_context.task_question是任务原文。只完成本步，不把任务全部挤入一条SQL。"
-                   "继承task_context.conditions的时间/范围/口径，依赖参数只用真实dependency_results。task_context.required_output_fields列出了下游必须读取的列，SQL SELECT必须用这些精确别名输出所需数据。"
-                   "query_contract.original_question由服务端绑定本步目标。只返回Skill要求的JSON。")
-        system += ("\n若需澄清同名原始字段的来源，在每个选项填写metric_sources，格式为字段公开名称或别名到真实table.field的映射；"
-                   "例如{\"metric_sources\":{\"字段名称\":\"物理表.字段\"}}。复合业务定义、目标值等其他澄清不填此字段。"
-                   "用户已确认的来源见confirmed_metric_sources；旧选项的补充答复见clarification_history，不得重复询问已确认信息。")
+        system = ("\n若需澄清同名字段来源，选项填写metric_sources（公开名称到真实table.field）。"
+                  "已确认来源见confirmed_metric_sources，澄清历史不得重复询问。")
         if (task_context or {}).get('step_protocol'):
             system += (STEP_PROTOCOL_INSTRUCTION + '\n查询步骤适用时返回原有action=call_tool及SQL/契约，并附step_decision。'
                        '不适用时返回{"action":"step_decision","step_decision":...}，不附SQL或工具。'
@@ -98,52 +81,36 @@ class SingleDatabaseAgent:
         observations: list[dict[str, Any]] = []
         tool_trace: list[dict[str, Any]] = []
         validation_attempts: list[dict[str, Any]] = []
+        budget = current_budget.get()
+        generation_key = database + ':' + str((task_context or {}).get('step_id') or 'direct')
+        generation_ledger = {
+            'key': generation_key,
+            'used': (budget.direct_sql_generations.get(generation_key, 0) if budget else 0),
+            'limit': (budget.sql_generation_limit if budget else 3),
+        }
+        selected_metrics = workspace.get('selected_semantics') or []
+        bound_query = {'query_id': generation_key, 'goal': query,
+                       'metric_requirements': [m['id'] for m in selected_metrics if m.get('id')]}
+        measurements = resolve_query_requirements([bound_query], schema_graph, selected_metrics)
+        query_context = assemble_query_context(
+            schema_graph, metrics=selected_metrics, retrieval=retrieval,
+            access_scope=access_scope, database=database)
         base_payload = {
-            "query": query,
-            "task_context": task_context or {},
-            "original_question": original_question,
-            "database": database,
-            "schema_graph": schema_graph,
-            "retrieval": {
-                "threshold": retrieval.get("threshold"),
-                "selected_fields": [
-                    self._compact_field(hit) for hit in retrieval.get("hits", [])
-                ],
-                "low_confidence_candidates": [
-                    self._compact_field(hit)
-                    for hit in list(retrieval.get("low_confidence_candidates") or [])[:5]
-                ],
-            },
-            "confirmed_fields": workspace.get("schema_fields", []),
+            **{key: value for key, value in query_context.items() if key != 'internal_schema_graph'},
+            "query": query, "task_context": task_context or {},
+            "original_question": original_question, "database": database,
+            'measurement_requests': measurements,
             "confirmed_parameters": workspace.get("confirmed_parameters", {}),
             "confirmed_metric_sources": workspace.get("confirmed_metric_sources") or {},
             "clarification_history": workspace.get("clarification_history") or [],
-            "schema_text": schema_context,
-            "scenario": workspace.get("scenario") or {},
-            "registered_metrics": workspace.get("selected_semantics") or [],
-            "mcp_tools": tools,
+            "scenario": workspace.get("scenario") or {}, "mcp_tools": tools,
+            "retrieval": {key: retrieval.get(key) for key in
+                          ('threshold', 'selected_count', 'hybrid_selected_count', 'dependency_added_count')},
+            "time_context": {'reference_now': budget.reference_now if budget else '',
+                             'rule': 'real_current_time_not_snapshot_analysis_date'},
         }
         if homenova.is_homenova(database):
-            # The graph already contains these fields; avoid repeating its full
-            # descriptions in schema_text and again in retrieval.selected_fields.
-            base_payload.pop("schema_text", None)
-            base_payload["retrieval"] = {
-                "threshold": retrieval.get("threshold"),
-                "hybrid_selected_count": retrieval.get("hybrid_selected_count"),
-                "dependency_added_count": retrieval.get("dependency_added_count"),
-            }
-            base_payload["registered_metrics"] = [{
-                "id": metric["id"], "label": metric["label"], "aliases": metric.get("aliases", []),
-                "definition": metric["definition"], "formula": metric["formula"], "depends_on": metric.get("depends_on", []),
-                "required_fields": [item["table"] + "." + item["field"] for item in metric["required_fields"]],
-                "required_predicates": metric.get("required_predicates", []),
-                "component_policies": metric.get("component_policies", []),
-                "time_fields": metric.get("time_fields", []), "grain": metric.get("grain"),
-                "unit": metric.get("unit"), "tax_policy": metric.get("tax_policy"),
-                "shipping_policy": metric.get("shipping_policy"), "refund_policy": metric.get("refund_policy"),
-                "maturity": metric.get("maturity"), "duplicate_risks": metric.get("duplicate_risks", []),
-            } for metric in workspace.get("selected_semantics") or []]
-            base_payload["term_notes"] = homenova.public_term_notes(database, query)
+            base_payload['term_notes'] = homenova.public_term_notes(database, query)
 
         try:
             for call_index in range(1, self.max_tool_calls + 1):
@@ -154,7 +121,9 @@ class SingleDatabaseAgent:
                         "task_id": workspace.get("task_id") or (current_budget.get().task_id if current_budget.get() else None),
                         "confirmed_metric_sources": workspace.get("confirmed_metric_sources") or {},
                         "clarification_history": workspace.get("clarification_history") or [],
+                        'registered_metrics': selected_metrics,
                     },
+                    generation_ledger=generation_ledger,
                 )
                 validation_attempts.extend(decision.pop("validation_attempts", []))
 
@@ -169,11 +138,19 @@ class SingleDatabaseAgent:
                         "tool_trace": tool_trace,
                         "validation_attempts": validation_attempts,
                         "step_decision": decision.get('step_decision'),
+                        "sql_generations": generation_ledger['used'],
+                        "sql_generation_limit": generation_ledger['limit'],
                     }
                 tool_name = str(decision["tool_name"])
                 arguments = decision["arguments"]
 
-                tool_result = mcp_client.call_tool(tool_name, arguments)
+                if tool_name == database_tool:
+                    prepared_result = self.sql_module.execute_prepared(
+                        database=database, sql=arguments['sql'], access_scope=access_scope,
+                        query_contract=decision['validated_query_contract'], mcp_client=mcp_client)
+                    tool_result = prepared_result['execution']
+                else:
+                    tool_result = mcp_client.call_tool(tool_name, arguments)
                 trace = {
                     "call_index": call_index,
                     "tool": tool_name,
@@ -188,10 +165,14 @@ class SingleDatabaseAgent:
                 tool_trace.append(trace)
 
                 if tool_name == database_tool:
+                    if tool_result.get('error_kind') == 'storage':
+                        raise PipelineStageError('result_storage', tool_result.get('error') or '结果持久化失败')
+                    if not bool(tool_result.get('success')) and generation_ledger['used'] >= generation_ledger['limit']:
+                        exhausted = BudgetStop(f"每条SQL最多生成{generation_ledger['limit']}次（包含首次生成），停止继续重写")
+                        exhausted.context = {'last_sql_error': tool_result.get('error'),
+                                             'error_kind': tool_result.get('error_kind') or 'sql_execution'}
+                        raise exhausted
                     if not bool(tool_result.get("success")) and call_index < self.max_tool_calls:
-                        budget = current_budget.get()
-                        if budget:
-                            budget.repair("SQL执行错误")
                         observations.append({
                             "tool": tool_name,
                             "result": {
@@ -212,6 +193,8 @@ class SingleDatabaseAgent:
                         "source": "model_mcp",
                         "validation_attempts": validation_attempts,
                         "step_decision": decision.get('step_decision'),
+                        "sql_generations": generation_ledger['used'],
+                        "sql_generation_limit": generation_ledger['limit'],
                     }
 
                 observations.append({"tool": tool_name, "result": tool_result})
@@ -219,11 +202,14 @@ class SingleDatabaseAgent:
             raise ValueError(f"MCP工具调用超过上限：{self.max_tool_calls}")
         except BudgetStop as exc:
             exc.context = {**getattr(exc, "context", {}), "tool_trace": tool_trace,
+                "sql_generations": generation_ledger['used'], "sql_generation_limit": generation_ledger['limit'],
                 "validation_attempts": [*validation_attempts, *getattr(exc, "context", {}).get("validation_attempts", [])]}
             raise
         except PipelineStageError as exc:
             exc.context.setdefault("datasource_id", database)
             exc.context.setdefault("tool_trace", tool_trace)
+            exc.context.setdefault("sql_generations", generation_ledger['used'])
+            exc.context.setdefault("sql_generation_limit", generation_ledger['limit'])
             exc.context.setdefault("retrieval_audit", {
                 key: retrieval.get(key) for key in
                 ("embedding_source", "rerank_source", "bm25_count", "dense_count", "rrf_count",
@@ -234,7 +220,8 @@ class SingleDatabaseAgent:
         except (RuntimeError, KeyError, TypeError, ValueError) as exc:
             stage = "query_contract_validation" if isinstance(exc, ValueError) and str(exc).startswith("查询前校验失败") else "single_database_agent"
             raise PipelineStageError(stage, str(exc), {"datasource_id": database,
-                "validation_attempts": validation_attempts, "tool_trace": tool_trace}) from exc
+                "validation_attempts": validation_attempts, "tool_trace": tool_trace,
+                "sql_generations": generation_ledger['used'], "sql_generation_limit": generation_ledger['limit']}) from exc
 
     def _validated_decision(
         self,
@@ -247,23 +234,46 @@ class SingleDatabaseAgent:
         schema_graph: dict[str, Any],
         access_scope: dict[str, Any],
         validation_context: dict[str, Any] | None = None,
+        generation_ledger: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """执行前最多让模型修正两次；无效SQL从不进入MCP。"""
+        """Share the caller's SQL allowance across format, contract and execution fixes."""
         error = ""
         previous: dict[str, Any] | None = None
         attempts: list[dict[str, Any]] = []
         failed_signature = None
-        for attempt in range(3):
+        generation_ledger = generation_ledger if generation_ledger is not None else {
+            'key': database + ':direct', 'used': 0, 'limit': 3}
+
+        def generation_changed() -> None:
+            budget = current_budget.get()
+            if budget:
+                budget.direct_sql_generations[generation_ledger['key']] = generation_ledger['used']
+                budget.record('direct_sql_generation', generation_key=generation_ledger['key'],
+                              used=generation_ledger['used'], limit=generation_ledger['limit'])
+
+        for attempt in range(generation_ledger['limit']):
             budget = current_budget.get()
             if budget:
                 budget.model_node = "query_coder"
-            if budget and attempt:
+            if generation_ledger['used'] >= generation_ledger['limit']:
+                exc = BudgetStop(f"每条SQL最多生成{generation_ledger['limit']}次（包含首次生成），停止继续重写")
+                exc.context = {'validation_attempts': attempts,
+                               'sql_generations': generation_ledger['used'],
+                               'sql_generation_limit': generation_ledger['limit']}
+                raise exc
+            repair_before = None
+            repair_step = budget.step if budget else None
+            if budget and generation_ledger['used']:
                 try:
+                    repair_before = budget.repairs.get(budget.step, 0)
                     budget.repair("格式/查询契约/SQL修正")
                 except BudgetStop as exc:
                     exc.context = {"validation_attempts": attempts}
                     raise
             request = dict(payload)
+            request['sql_generation'] = {'used': generation_ledger['used'],
+                                         'limit': generation_ledger['limit'],
+                                         'instruction': '总次数包含首次；只在剩余额度内定向修复，SQL模块澄清仍占次数，旧任务继承原上限。'}
             if error:
                 request["previous_invalid_output"] = previous
                 request["output_validation_error"] = error
@@ -271,11 +281,48 @@ class SingleDatabaseAgent:
                     "查询前校验失败。保持原问题、指标和粒度；根据具体错误定向修复contract或SQL，保留无关已通过部分，不要重复相同无效产物。"
                     "若业务口径或必要信息无法确定则返回clarify。"
                 )
-            if budget:
-                budget.skill(self.skill.name, self.skill.instructions, 'query_coder')
-                for name, instructions in (payload.get('task_context') or {}).get('business_methods', {}).items():
-                    budget.skill(name, instructions, 'query_coder')
-            decision = self.model_client.chat_json(system, json.dumps(model_result_context(request), ensure_ascii=False))
+            # The next response can contain SQL. Reserve its generation before
+            # dispatch so invalid output, unknown network response or restart
+            # cannot make an authorized generation free. Valid non-SQL actions
+            # refund only this tentative count after their shape is checked.
+            generation_ledger['used'] += 1
+            generation_changed()
+
+            def refund_non_sql() -> None:
+                generation_ledger['used'] -= 1
+                if budget and repair_before is not None and budget.repairs.get(repair_step) == repair_before + 1:
+                    if repair_before:
+                        budget.repairs[repair_step] = repair_before
+                    else:
+                        budget.repairs.pop(repair_step, None)
+                    budget.record('direct_sql_repair_refund', reason='实际返回有效非SQL动作', generation_key=generation_ledger['key'])
+                generation_changed()
+
+            # Both direct queries and investigation batches use this generator.
+            # The existing ordinary controller still owns time tools and its
+            # compatibility StepDecision protocol.
+            generated = self.sql_module.generate_batch(
+                [{'query_id': generation_ledger['key'], 'goal': payload.get('query') or original_question,
+                  'metric_requirements': [m['id'] for m in payload.get('registered_metrics') or [] if m.get('id')]}],
+                {**request, 'allow_preparation_actions': True, '_system_extension': system},
+                repair=({generation_ledger['key']: {'sql': str(((previous or {}).get('arguments') or {}).get('sql') or ''),
+                    'query_contract': (previous or {}).get('query_contract'), 'error': error}}
+                    if error else None))
+            decision = generated.get('decision')
+            generation_error = None
+            if decision is None:
+                candidate = generated['candidates'].get(generation_ledger['key'])
+                if candidate:
+                    decision = {'action': 'call_tool', 'tool_name': database_tool,
+                                'arguments': {'sql': candidate['sql']},
+                                'query_contract': candidate['query_contract'],
+                                'reason': candidate.get('technical_note', '')}
+                else:
+                    # Feed malformed batch output through the same bounded
+                    # validation feedback, without another hidden model call.
+                    raw_decision = generated.get('raw_response')
+                    decision = raw_decision if isinstance(raw_decision, dict) else {}
+                    generation_error = (generated.get('errors', {}).get(generation_ledger['key']) or {}).get('message')
             previous = decision
             action = str(decision.get("action") or "")
             audit = {"attempt": attempt + 1, "database": database, "action": action,
@@ -283,7 +330,11 @@ class SingleDatabaseAgent:
                      "tool_name": decision.get("tool_name"),
                      "sql": str((decision.get("arguments") or {}).get("sql") or "") if isinstance(decision.get("arguments"), dict) else "",
                      "query_contract": decision.get("query_contract"), "success": False}
+            audit['sql_generations'] = generation_ledger['used']
+            audit['sql_generation_limit'] = generation_ledger['limit']
             try:
+                if generation_error:
+                    raise ValueError(generation_error)
                 step_context = payload.get('task_context') or {}
                 protocol = bool(step_context.get('step_protocol'))
                 if action not in self.skill.output_actions and not (protocol and action == 'step_decision'):
@@ -302,16 +353,21 @@ class SingleDatabaseAgent:
                         if decision.get('arguments') or decision.get('tool_name') or decision.get('query_contract'):
                             raise ValueError('不执行本步时不能附带SQL或工具调用')
                         audit['success'] = True
+                        refund_non_sql()
+                        audit['sql_generations'] = generation_ledger['used']
                         attempts.append(audit)
                         decision['validation_attempts'] = attempts
                         return decision
                 if action == "clarify":
+                    if decision.get('arguments') or decision.get('tool_name') or decision.get('query_contract'):
+                        raise ValueError('澄清动作不能附带SQL、工具调用或查询契约')
                     clarification = decision.get("clarification")
                     if not isinstance(clarification, dict) or len(clarification.get("options") or []) < 2:
                         raise ValueError("智能体返回的澄清信息不完整")
                     decision['clarification'] = normalize_source_clarification(
                         clarification, database, schema_graph, access_scope)
                     audit["success"] = True
+                    audit['sql_generations'] = generation_ledger['used']
                     attempts.append(audit)
                     decision["validation_attempts"] = attempts
                     return decision
@@ -323,30 +379,41 @@ class SingleDatabaseAgent:
                 if not isinstance(decision.get("arguments"), dict):
                     raise ValueError("MCP工具参数必须是JSON对象")
                 if tool_name == database_tool:
-                    sql = str(decision["arguments"].get("sql") or "")
-                    raw_contract = decision.get("query_contract")
-                    if homenova.is_homenova(database) and isinstance(raw_contract, dict):
-                        # The caller owns the original user message. Preserve
-                        # the model's declaration in audit, never trust it as
-                        # an authority or require it to parrot bytes correctly.
-                        audit["model_declared_original_question"] = raw_contract.get("original_question")
-                        raw_contract = {**raw_contract, "original_question": original_question}
-                    contract = self.contract_validator.validate(
-                        raw_contract, sql, original_question,
-                        database, schema_graph, access_scope, validation_context=validation_context,
-                    )
-                    decision["validated_query_contract"] = contract
-                    audit['validated_query_contract'] = contract
-                    if budget:
-                        budget.record('query_validation', normalizations=contract['validation']['normalizations'],
-                                      pending_checks=contract['validation']['pending_checks'])
+                    # Keep the public validator alias for existing injected
+                    # validators, while sharing the real implementation.
+                    self.sql_module.contract_validator = self.contract_validator
+                    prepared = self.sql_module.validate_candidate(
+                        sql=str(decision['arguments'].get('sql') or ''),
+                        query_contract=decision.get('query_contract'), question=original_question,
+                        database=database, schema_graph=schema_graph, access_scope=access_scope,
+                        validation_context=validation_context)
+                    decision['arguments']['sql'] = prepared['sql']
+                    decision['validated_query_contract'] = prepared['query_contract']
+                    audit['validated_query_contract'] = prepared['query_contract']
+                    if prepared['source_normalizations']:
+                        audit['sql_source_normalizations'] = prepared['source_normalizations']
+                else:
+                    if decision['arguments'].get('sql') or decision.get('query_contract'):
+                        raise ValueError('非数据库工具不能附带SQL或查询契约')
+                    refund_non_sql()
+                    audit['sql_generations'] = generation_ledger['used']
                 audit["success"] = True
                 attempts.append(audit)
                 decision["validation_attempts"] = attempts
                 return decision
+            except PermissionError as exc:
+                audit.update(error=str(exc), error_kind='permission', success=False)
+                attempts.append(audit)
+                raise PipelineStageError('query_permission', str(exc),
+                    {'datasource_id': database, 'validation_attempts': attempts,
+                     'error_kind': 'permission', 'repair_available': False}) from exc
             except ValueError as exc:
                 error = str(exc)
                 audit["error"] = error
+                audit['repair_diagnostics'] = repair_diagnostics(error,
+                    sql=str((decision.get('arguments') or {}).get('sql') or ''),
+                    query_contract=decision.get('query_contract'), measurements=payload.get('measurement_requests'),
+                    schema_graph=schema_graph)
                 attempts.append(audit)
                 signature = json.dumps({'error': error, 'action': decision.get('action'),
                     'arguments': decision.get('arguments'), 'query_contract': decision.get('query_contract'),
@@ -355,8 +422,8 @@ class SingleDatabaseAgent:
                     raise PipelineStageError('query_contract_validation', f'查询前校验失败（相同错误与相关产物未变化，停止重复修复）：{error}',
                         {'datasource_id': database, 'validation_attempts': attempts, 'no_progress': True}) from exc
                 failed_signature = signature
-                if attempt == 2:
-                    raise PipelineStageError("query_contract_validation", f"查询前校验失败（初次生成及2次额外修复后停止）：{error}",
+                if attempt >= generation_ledger['limit'] - 1 or generation_ledger['used'] >= generation_ledger['limit']:
+                    raise PipelineStageError("query_contract_validation", f"查询前校验失败（已达{generation_ledger['limit']}次生成上限）：{error}",
                         {"datasource_id": database, "validation_attempts": attempts}) from exc
         raise PipelineStageError("query_contract_validation", f"查询前校验失败：{error}",
                                  {"datasource_id": database, "validation_attempts": attempts})

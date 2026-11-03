@@ -16,3 +16,4 @@ class SqlExecution:
     preview_truncated: bool = False
     complete: bool = True
     result_ref: str | None = None
+    error_kind: str | None = None

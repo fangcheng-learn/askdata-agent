@@ -114,15 +114,39 @@ export interface VisualizationSpec {
   type: "bar" | "pie"
   title: string
   source_task_id: string
+  source_result_id?: string | null
+  source_version?: string | null
   category_field: string
   value_field: string
   max_items: number
+  order?: "value_desc" | "category_asc" | "source"
+  unit?: string | null
+  currency?: string | null
+  precision?: number
 }
 
 export interface AnalysisReport {
   title: string
   markdown: string
   visualizations: VisualizationSpec[]
+  data_sources?: ReportEvidenceSource[]
+  warnings?: string[]
+}
+
+export interface ReportEvidenceSource {
+  result_id: string
+  version: string
+  task_id: string
+  datasource_id: string
+  title: string
+  columns: string[]
+  rows: Record<string, string | number | null>[]
+  complete: boolean
+  provided_rows: number
+  total_rows?: number | null
+  units: Record<string, string>
+  currencies: Record<string, string>
+  precisions: Record<string, number>
 }
 
 export interface ReportToolCall {
@@ -132,15 +156,27 @@ export interface ReportToolCall {
   result: VisualizationSpec
 }
 
+export interface QueryTimeRange {
+  start?: string
+  end?: string
+  end_inclusive?: boolean
+}
+
 export interface QueryResult {
+  scenario?: ScenarioContext | null
+  selected_semantics?: { id?: string; name?: string; label?: string; definition?: string; formula?: string }[]
   task_id: string
+  session_id?: string | null
+  datasource_id?: string | null
+  resumable?: boolean
+  required_questions?: string[]
   execution_log?: Record<string, unknown>[]
   status: "waiting_clarification" | "completed" | "partial" | "failed"
   route: "database_query" | "data_qa" | "direct_response"
   message: string
-  plan?: { id: string; goal: string; kind: string; depends_on: string[]; status: string; result_ids: string[]; input_result_ids: string[]; error?: string | null }[]
-  evidence?: { id: string; step_id: string; goal: string; sql?: string; columns: string[]; rows: Record<string, unknown>[]; check_status: string; total_rows?: number | null; complete: boolean; display_truncated: boolean; result_ref?: string; query_contract?: { validation?: { pending_checks?: { code: string; message: string }[]; normalizations?: Record<string, unknown>[] } } }[]
-  budget?: { tools: number; tool_limit: number; repairs: Record<string, number>; replans: number; model_calls: Record<string, number>; active_seconds: number; remaining_seconds: number; events?: { sequence: number; stage: string; step_id: string; active_seconds: number; node?: string; skill?: string; content_sha256?: string; characters?: number; reason?: string; name?: string }[] }
+  plan?: { id: string; goal: string; kind: string; action_type?: string; depends_on: string[]; status: string; result_ids: string[]; input_result_ids: string[]; attempts?: number; sql_generations?: number; sql_generation_limit?: number; generation_closed?: boolean; reused?: boolean; error?: string | null }[]
+  evidence?: { id: string; step_id: string; goal: string; sql?: string; columns: string[]; rows: Record<string, unknown>[]; check_status: string; total_rows?: number | null; complete: boolean; display_truncated: boolean; result_ref?: string; query_contract?: { time_range?: QueryTimeRange; time_ranges?: QueryTimeRange[]; validation?: { pending_checks?: { code: string; message: string }[]; normalizations?: Record<string, unknown>[] } } }[]
+  budget?: { tools: number; tool_limit: number; repairs: Record<string, number>; replans: number; model_calls: Record<string, number>; active_seconds: number; remaining_seconds: number; react_rounds?: number; react_round_limit?: number; react_decisions?: number; react_round_policy?: string; sql_generation_limit?: number; model_budget?: { mode?: string; enforced?: boolean; used: Record<string, number>; estimated_unknown?: Record<string, number>; limit: number | null; retrieval_limit: number | null; max_input: number | null; max_output: number | null; closing_reserve: number | null; reserved: number; remaining: number | null; estimator?: string }; model_usage?: { kind: string; node?: string; step_id?: string; model?: string; status?: string; request_characters?: number; usage?: { prompt_tokens?: number; completion_tokens?: number; input_tokens?: number; output_tokens?: number; total_tokens?: number; prompt_tokens_details?: { cached_tokens?: number } } | null }[]; events?: { sequence: number; stage: string; step_id: string; active_seconds: number; node?: string; skill?: string; content_sha256?: string; characters?: number; reason?: string; name?: string; [key: string]: unknown }[] }
   final_reviewed?: boolean
   reviews?: { final: boolean; action: string; reason: string }[]
   step_decisions?: { step_id: string; action: string; premise_status: string; condition_id?: string | null; evidence_ids: string[]; affected_requirement_ids: string[]; affected_step_ids: string[]; remaining_requirement_ids: string[]; reason: string }[]
@@ -187,12 +223,15 @@ export interface QueryResult {
   tool_calls?: CoderToolCall[]
   analysis_sources?: AnalysisSource[]
   workflow_mode?: "qa" | "single_database_fast_path" | "multi_database_handoff" | "langgraph_hitl" | string | null
+  execution_protocol_version?: number | null
   report?: AnalysisReport | null
   report_tool_calls?: ReportToolCall[]
 }
 
 export interface ReportDataSource {
   taskId: string
+  resultId?: string
+  version?: string
   title: string
   columns: string[]
   rows: Record<string, string | number | null>[]
@@ -272,4 +311,28 @@ export interface LoginResponse {
   access_token: string
   token_type: "bearer"
   user: AuthUser
+}
+
+export interface RuntimeOptions {
+  model: string
+  skills: string[] | null
+  tools: string[] | null
+}
+export interface WorkbenchOptions {
+  models: string[]
+  default_model: string
+  skills: { name: string; description: string; allowed_tools: string[] }[]
+  tools: { name: string; title?: string; description: string }[]
+}
+export interface WorkbenchRun {
+  id: string
+  query: string
+  session_id: string
+  workspace: WorkspaceConfig
+  options: RuntimeOptions
+  status: 'running' | 'stopping' | 'completed' | 'failed' | 'stopped' | 'interrupted'
+  stage: string
+  result: QueryResult | null
+  error: string
+  created_at: string
 }

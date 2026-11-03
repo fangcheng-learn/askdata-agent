@@ -9,6 +9,19 @@ const props = defineProps<{
   sources: ReportDataSource[]
 }>()
 const reportElement = ref<HTMLElement | null>(null)
+// Investigation charts use the exact evidence frozen and reviewed with this
+// report, rather than whichever result happens to be latest for the task.
+const chartSources = computed<ReportDataSource[]>(() => [
+  ...(props.report.data_sources ?? []).map((source) => ({
+    taskId: source.task_id,
+    resultId: source.result_id,
+    version: source.version,
+    title: source.title,
+    columns: source.columns,
+    rows: source.rows,
+  })),
+  ...props.sources,
+])
 
 const displayMarkdown = computed(() => {
   const lines = props.report.markdown.replace(/\r\n/g, "\n").split("\n")
@@ -75,8 +88,11 @@ function exportPdf() {
       </div>
     </header>
     <div v-if="report.visualizations.length" class="report-charts">
-      <AnalysisChart v-for="(spec, index) in report.visualizations" :key="`${spec.source_task_id}:${index}`" :spec="spec" :sources="sources" />
+      <AnalysisChart v-for="(spec, index) in report.visualizations" :key="`${spec.source_result_id || spec.source_task_id}:${spec.source_version || ''}:${index}`" :spec="spec" :sources="chartSources" />
     </div>
     <MarkdownReport :markdown="displayMarkdown" />
+    <div v-if="report.warnings?.length" class="report-warnings" style="padding: 0 20px 16px; color: #7b6244; font-size: 12px">
+      <p v-for="warning in report.warnings" :key="warning">{{ warning }}</p>
+    </div>
   </article>
 </template>

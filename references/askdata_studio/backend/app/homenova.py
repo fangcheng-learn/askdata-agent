@@ -48,13 +48,27 @@ def semantic_folder(database: str) -> Path:
 
 @lru_cache(maxsize=2)
 def schema_payload(database: str) -> dict[str, Any]:
-    return json.loads((semantic_folder(database) / "schema.json").read_text(encoding="utf-8"))
+    payload = json.loads((semantic_folder(database) / "schema.json").read_text(encoding="utf-8"))
+    # Exactly one registered public resource in the bound snapshot. Do not
+    # search docs or import whole reports as runtime business knowledge.
+    folder = snapshot_folder(database)
+    dictionary = (folder / "data_dictionary.md").resolve()
+    if dictionary.parent != folder:
+        raise ValueError("公开数据字典必须位于绑定快照内")
+    if dictionary.is_file():
+        from .querying.public_enum_metadata import enrich_enum_metadata
+        return enrich_enum_metadata(payload, dictionary.read_text(encoding="utf-8"),
+                                    source=f"{database}/data_dictionary.md")
+    return payload
 
 
 @lru_cache(maxsize=2)
 def metrics(database: str) -> list[dict[str, Any]]:
     payload = json.loads((semantic_folder(database) / "metrics.json").read_text(encoding="utf-8"))
-    return list(payload.get("metrics") or []) if isinstance(payload, dict) else list(payload)
+    from .querying.paid_metric_definitions import extend_metrics
+    from .querying.session_metric_definitions import extend_session_metrics
+    return extend_session_metrics(
+        extend_metrics(list(payload.get("metrics") or []) if isinstance(payload, dict) else list(payload)), database)
 
 
 def available_sources() -> list[dict[str, Any]]:
@@ -95,8 +109,9 @@ def public_capabilities(database: str) -> dict[str, Any]:
 
 def scenario_text(database: str) -> str:
     capabilities = json.loads((semantic_folder(database) / "capabilities.json").read_text(encoding="utf-8"))
-    return ("当前唯一数据源与场景时间：" + json.dumps({"datasource_id": database, **scenario(database)}, ensure_ascii=False)
-            + "。相对日期使用analysis_date，不能使用机器今天。所有业务日按Europe/Berlin；UTC时间列为TIMESTAMPTZ。"
+    return ("当前唯一数据源与快照覆盖元信息：" + json.dumps({"datasource_id": database, **scenario(database)}, ensure_ascii=False)
+            + "。analysis_date只是快照历史元信息，不能代替今天；相对日期使用机器真实当前时刻。所有业务日按Europe/Berlin；UTC时间列为TIMESTAMPTZ。"
+            "未说最近多久且无可继承期间先问。请求超出交易覆盖须说明缺失，不能当零、自动换期或换快照。"
             "金额整数欧分，报告EUR时除以100；观察截止为排他边界，未来结果不在此快照。"
             "不要把含税成交额当不含税发货收入、净销售或毛利；按公开指标定义查询，分母为零返回NULL。"
             "当前公开数据能力边界：" + json.dumps(capabilities.get("boundaries", []), ensure_ascii=False)

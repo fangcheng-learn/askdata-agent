@@ -14,6 +14,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 APP = ROOT / 'references/askdata_studio'
+FRONTEND = ROOT / 'apps/insightpilot'
 PYTHON = APP / 'backend/.venv/bin/python'
 START = ROOT / 'scripts/homenova_phase_e/start.py'
 RUNTIME = ROOT / 'data/homenova_harness_v1/private/desktop_launcher'
@@ -34,7 +35,13 @@ def check_port_owners() -> None:
         for pid in pids:
             process = subprocess.run(['/bin/ps', '-p', pid, '-o', 'command='],
                                      capture_output=True, text=True, check=True)
-            if not all(signature in process.stdout for signature in signatures):
+            owned = all(signature in process.stdout for signature in signatures)
+            if port == 5174 and not owned:
+                cwd_info = subprocess.run(['/usr/sbin/lsof', '-a', '-p', pid, '-d', 'cwd', '-Fn'],
+                                          capture_output=True, text=True, check=True)
+                owned = ('next-server' in process.stdout or '/next/dist/bin/next' in process.stdout) and (
+                    'n' + str(FRONTEND) in cwd_info.stdout.splitlines())
+            if not owned:
                 raise RuntimeError(f'端口 {port} 已被其他程序占用。为保护其他项目，本次未启动。')
 
 
@@ -54,6 +61,7 @@ def main() -> int:
             check_port_owners()
             env = os.environ.copy()
             env['PATH'] = '/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/opt/homebrew/bin'
+            env.setdefault('MODEL_TRACE_DIR', str(RUNTIME / 'runtime/model_traces'))
             with (RUNTIME / 'launcher.log').open('a', encoding='utf-8') as stream:
                 stream.write('\n[' + datetime.now().astimezone().isoformat() + '] launch\n')
                 stream.flush()

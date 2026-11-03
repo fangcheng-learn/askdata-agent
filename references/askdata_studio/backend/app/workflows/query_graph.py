@@ -1,7 +1,12 @@
 from __future__ import annotations
 
 import json
+import hashlib
+from copy import deepcopy
 from dataclasses import replace
+from datetime import datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
 from typing import Any
 from threading import RLock
 
@@ -14,10 +19,11 @@ from ..database import SCHEMA, physical_table_name
 from ..errors import PipelineStageError
 from ..mcp_runtime import LocalMcpClient, create_local_mcp_server
 from ..model_client import ModelClient
-from ..models import QueryResult
+from ..models import AnalysisReport, QueryResult
 from ..preprocessing import RequestPreprocessor
 from ..querying.duckdb_engine import DuckDbEngine
 from ..querying.data_qa_agent import DataQaAgent
+from ..querying.analysis_evidence import load_analysis_evidence, model_analysis_context
 from ..querying.models import SqlExecution
 from ..querying.response_generator import ResponseGenerator
 from ..querying.single_database_agent import SingleDatabaseAgent
@@ -30,7 +36,10 @@ from ..skills import SkillRegistry
 from .result_builder import ResultBuilder
 from .state import QueryState
 from .harness import InvestigationHarness
+from .react_harness import ReactInvestigationHarness
+from ..services.investigation_store import InvestigationStore
 from ..runtime_budget import RunBudget, current_budget, BudgetStop
+from ..agent_configuration_runtime import (configuration_snapshot, current_configuration, default_snapshot)
 
 
 class QueryWorkflow:
@@ -57,6 +66,9 @@ class QueryWorkflow:
         self.skills = SkillRegistry()
         self.graph_builder = SchemaGraphBuilder()
         self.database_engine = DuckDbEngine()
+        self.investigation_store = InvestigationStore(
+            Path(self.config.harness_state_path), max_bytes=self.config.harness_state_max_bytes)
+        self.database_engine.result_store = self.investigation_store
         self.single_database_agent = SingleDatabaseAgent(
             model_client,
             self.mcp_client,
@@ -75,7 +87,9 @@ class QueryWorkflow:
         )
         self.budgets: dict[str, RunBudget] = {}
         self.task_locks: dict[str, Any] = {}
-        self.harness = InvestigationHarness(self)
+        self.configuration_snapshots: dict[str, dict] = {}
+        self.legacy_harness = InvestigationHarness(self)
+        self.harness = ReactInvestigationHarness(self, self.investigation_store) if self.config.harness_react_enabled else self.legacy_harness
         self.checkpointer = InMemorySaver()
         self.graph = self._compile()
 
@@ -91,6 +105,7 @@ class QueryWorkflow:
     def _compile(self):
         builder = StateGraph(QueryState)
         builder.add_node("preprocess", self._preprocess)
+        builder.add_node("metadata_query", self._metadata_query)
         builder.add_node("investigate", self._investigate)
         builder.add_node("respond_directly", self._respond_directly)
         builder.add_node("answer_qa", self._answer_qa)
@@ -103,17 +118,20 @@ class QueryWorkflow:
         builder.add_conditional_edges(
             "preprocess",
             lambda state: "investigate" if state.get("needs_planner") else {
+                "metadata_query": "metadata_query",
                 "direct_response": "respond_directly",
                 "data_qa": "answer_qa",
                 "database_query": "retrieve_schema",
             }[state["intent"]["action"]],
             {
+                "metadata_query": "metadata_query",
                 "investigate": "investigate",
                 "respond_directly": "respond_directly",
                 "answer_qa": "answer_qa",
                 "retrieve_schema": "retrieve_schema",
             },
         )
+        builder.add_edge("metadata_query", END)
         builder.add_edge("investigate", END)
         builder.add_edge("respond_directly", END)
         builder.add_edge("answer_qa", END)
@@ -157,10 +175,22 @@ class QueryWorkflow:
             return self._invoke_locked(task_id, action)
 
     def _invoke_locked(self, task_id: str, action) -> QueryResult:
-        budget = self.budgets.setdefault(task_id, RunBudget(task_id,
-            tool_limit=self.config.harness_tool_limit, repair_limit=self.config.harness_repair_limit,
-            replan_limit=self.config.harness_replan_limit, seconds=self.config.harness_seconds,
-            investigation_seconds=self.config.harness_investigation_seconds))
+        if task_id not in self.budgets:
+            self.budgets[task_id] = RunBudget(task_id,
+                tool_limit=self.config.harness_tool_limit, repair_limit=self.config.harness_repair_limit,
+                replan_limit=self.config.harness_replan_limit, seconds=self.config.harness_seconds,
+                investigation_seconds=self.config.harness_investigation_seconds,
+                react_round_limit=self.config.harness_react_round_limit,
+                sql_generation_limit=self.config.harness_sql_generation_limit)
+        budget = self.budgets[task_id]
+        record = self.harness.records.get(task_id) if isinstance(self.harness, ReactInvestigationHarness) else None
+        if record is not None:
+            snapshot = record.configuration_snapshot if record.configuration_snapshot is not None else default_snapshot()
+        else:
+            if task_id not in self.configuration_snapshots:
+                self.configuration_snapshots[task_id] = configuration_snapshot()
+            snapshot = self.configuration_snapshots[task_id]
+        configuration_token = current_configuration.set(snapshot)
         token = current_budget.set(budget)
         budget.start()
         try:
@@ -168,16 +198,34 @@ class QueryWorkflow:
         except BudgetStop as exc:
             snapshot = self.graph.get_state(self.run_config(task_id)).values
             raw = snapshot.get("mcp_execution") or {}
+            stop_context = getattr(exc, 'context', {})
+            trace = stop_context.get('tool_trace') or []
+            # SQL-generation exhaustion can occur before prepare commits its
+            # graph state. Preserve the last real execution and diagnostic;
+            # stopping a third generation must not erase the first two.
+            if not raw:
+                raw = next((item.get('result') or {} for item in reversed(trace)
+                            if str(item.get('tool') or '').startswith('query_')), {})
+            stop_log = [*snapshot.get('execution_log', []), *[
+                {'stage': 'mcp_tool_call', 'success': bool(item.get('result', {}).get('success')), **item}
+                for item in trace]]
+            detail = '尚未完成交付审核。' + str(exc)
+            if raw.get('error'):
+                detail += '；最后一次SQL执行错误：' + str(raw['error'])
             result = QueryResult(task_id=task_id, status="partial" if raw.get("success") else "failed", route="database_query",
-                message="预算停止（尚未完成审核）", analysis="尚未完成交付审核。" + str(exc), stop_reason=str(exc),
+                message="预算停止（尚未完成审核）", analysis=detail, stop_reason=str(exc),
                 workflow_mode=snapshot.get("workflow_mode"),
-                execution_log=[*snapshot.get("execution_log", []), {"stage": "budget_stop", "success": False, "error": str(exc), **getattr(exc, "context", {})}],
+                execution_log=[*stop_log, {"stage": "budget_stop", "success": False, "error": str(exc), **stop_context}],
                 sql=raw.get("sql"), rows=raw.get("rows") or [], columns=raw.get("columns") or [],
                 total_rows=raw.get("total_rows"), preview_truncated=raw.get("preview_truncated", False),
                 complete=raw.get("complete", True), result_ref=raw.get("result_ref"))
         finally:
-            budget.pause()
-            current_budget.reset(token)
+            try:
+                budget.pause()
+                budget.checkpoint()
+            finally:
+                current_budget.reset(token)
+                current_configuration.reset(configuration_token)
         result.budget = budget.public()
         return result
 
@@ -192,10 +240,11 @@ class QueryWorkflow:
     def _state_result(self, state: dict[str, Any], task_id: str) -> QueryResult:
         if state.get("result"):
             result = QueryResult.model_validate(state["result"])
-            result.datasource_id = state.get("datasource_id") or None
+            result.datasource_id = state.get("datasource_id") or result.datasource_id
             result.scenario = state.get("scenario") or None
-            result.selected_semantics = list(state.get("selected_semantics") or [])
-            if result.workflow_mode != "investigation_harness_v1":
+            if result.workflow_mode != 'investigation_react_v1':
+                result.selected_semantics = list(state.get("selected_semantics") or [])
+            if result.workflow_mode not in {"investigation_harness_v1", "investigation_react_v1"}:
                 result.selected_skills = list(state.get("business_skills") or [])
             return result
         state = {**state, "task_id": state.get("task_id") or task_id}
@@ -204,14 +253,17 @@ class QueryWorkflow:
     def _preprocess(self, state: QueryState) -> dict[str, Any]:
         """生成路由、独立查询和 Schema 检索参数。"""
         route_context = state.get("route_context", "")
+        budget = current_budget.get()
+        zone = 'Europe/Berlin' if homenova.is_homenova(state.get('datasource_id')) else 'Asia/Shanghai'
+        reference = (budget.reference_now if budget and budget.reference_now else datetime.now(ZoneInfo(zone)).isoformat(timespec='seconds'))
+        if budget:
+            budget.reference_now = reference
+        time_context = {'reference_now': reference, 'timezone': zone, 'rule': 'real_current_time',
+                        'recent_without_duration': 'clarify_unless_context_has_period'}
+        route_context = '本任务真实时间参考：' + json.dumps(time_context, ensure_ascii=False) + '\n' + route_context
         if homenova.is_homenova(state.get("datasource_id")):
             route_context = homenova.scenario_text(state["datasource_id"]) + "\n" + route_context
         decision = self.preprocessor.prepare(state["query"], route_context)
-        budget = current_budget.get()
-        if budget:
-            budget.record('preprocess_decision', route=decision.action, reason=decision.reason,
-                          needs_planner=decision.needs_planner, selected_business_skills=decision.business_skills,
-                          required_questions=decision.required_questions, standalone_query=decision.standalone_query)
         execution_log = list(state.get("execution_log") or [])
         if decision.source == "model_unavailable_fallback":
             execution_log.append({
@@ -221,7 +273,49 @@ class QueryWorkflow:
                 "action": decision.action,
                 "reason": decision.reason,
             })
+        selected_context = {}
+        if decision.action == 'data_qa' and decision.analysis_task_ids and not state.get('analysis_context'):
+            candidates = {item['task_id']: item for item in json.loads(state.get('recent_result_candidates') or '[]')}
+            if all(task_id in candidates for task_id in decision.analysis_task_ids):
+                selected = [candidates[task_id] for task_id in decision.analysis_task_ids]
+                selected_context = {'analysis_context': json.dumps(selected, ensure_ascii=False),
+                    'analysis_sources': [{k: item.get(k) for k in ('task_id', 'title', 'row_count', 'columns')}
+                                         for item in selected]}
+                execution_log.append({'stage': 'analysis_source_selection', 'success': True,
+                                      'source_task_ids': decision.analysis_task_ids})
+            else:
+                # Never replace a missing requested source with an unrelated
+                # latest table or let a model-supplied ID read another session.
+                decision.action = 'direct_response'
+                decision.response_type = 'clarification'
+                decision.response = '我没有找到这次追问所指的可用历史结果，请在参考结果中选择要继续分析的那份数据。'
+                decision.needs_planner = True
+                decision.required_questions = [state['query']]
+                decision.task_understanding = {**decision.task_understanding,
+                    'goal': state['query'], 'questions': [state['query']]}
+                execution_log.append({'stage': 'analysis_source_selection', 'success': False,
+                                      'error': 'requested_source_unavailable'})
+        if decision.response_type == 'clarification' and not state.get('datasource_id'):
+            # The legacy, unbound entry has no authenticated datasource identity
+            # for a durable investigation. Keep its existing intent/source
+            # clarification reply; never invent a source to satisfy storage.
+            # Same-task investigation resume is guaranteed only after binding.
+            decision.action = 'direct_response'
+            decision.needs_planner = False
+            execution_log.append({'stage': 'entry_clarification', 'success': True,
+                'mode': 'legacy_unbound', 'durable_investigation': False,
+                'reason': '尚未绑定数据源，保留原入口澄清回复；未创建可恢复的经营调查'})
+        budget = current_budget.get()
+        if budget:
+            budget.record('preprocess_decision', route=decision.action, reason=decision.reason,
+                          needs_planner=decision.needs_planner, selected_business_skills=decision.business_skills,
+                          required_questions=decision.required_questions, standalone_query=decision.standalone_query,
+                          analysis_mode=decision.analysis_mode, analysis_task_ids=decision.analysis_task_ids,
+                          analysis_result_ids=decision.analysis_result_ids)
         return {
+            **selected_context,
+            "analysis_result_ids": decision.analysis_result_ids if decision.action == 'data_qa' else [],
+            "analysis_mode": decision.analysis_mode,
             "intent": {
                 "action": decision.action,
                 "confidence": decision.confidence,
@@ -235,9 +329,38 @@ class QueryWorkflow:
             "extraction": decision.retrieval.public(),
             "execution_log": execution_log,
             "needs_planner": decision.needs_planner,
-            "business_skills": decision.business_skills,
+            "business_skills": [] if self.config.harness_react_enabled else decision.business_skills,
             "required_questions": decision.required_questions,
+            "task_understanding": decision.task_understanding,
+            "time_context": time_context,
         }
+
+    def _metadata_query(self, state: QueryState):
+        scope = AccessScope.from_dict(state['access_scope'])
+        database = state.get('datasource_id')
+        tables = []
+        for table in SCHEMA:
+            source = table.get('database', 'askdata_mock')
+            if (database and source != database) or not scope.allows_table(source, table['id']):
+                continue
+            tables.append({'name': physical_table_name(table), 'datasource_id': source,
+                'description': table.get('description') or table.get('label') or '',
+                'fields': [{'name': column['name'],
+                    'type': column.get('sql_type') or column.get('type') or '',
+                    'description': column.get('description') or column.get('label') or ''}
+                    for column in table.get('fields', [])]})
+        catalog = {'datasource_id': database, 'complete': True, 'table_count': len(tables), 'tables': tables}
+        # Entry Agent selected the metadata capability; the existing DataQa
+        # Agent owns the answer. No keyword branching or fixed prose/table dump.
+        answer = self.data_qa_agent.run(state['query'], {
+            'mode': 'metadata', 'authorized_metadata': catalog,
+            'short_term': state.get('short_term_context', '')}, state['access_scope'])
+        result = QueryResult(task_id=state['task_id'], status='completed', route='data_qa',
+            message='已读取授权元数据并回答', analysis=answer.answer, workflow_mode='metadata_read',
+            execution_log=[{'stage': 'authorized_metadata_read', 'success': True,
+                            'table_count': len(tables), 'catalog': catalog},
+                           {'stage': 'metadata_agent_answer', 'success': True}])
+        return {'result': result.model_dump(mode='json')}
 
     def _business_methods(self, state: QueryState) -> dict[str, str]:
         return {name: self.skills.get(name).instructions for name in state.get("business_skills", [])
@@ -245,6 +368,12 @@ class QueryWorkflow:
 
     def _respond_directly(self, state: QueryState) -> dict[str, Any]:
         """返回预处理模型生成的普通回答或自然语言澄清。"""
+        if state.get('datasource_id') and (state.get('intent') or {}).get('response_type') == 'clarification':
+            # Defensive boundary for server-created clarification decisions as
+            # well as old/injected router outputs with a bound data source.
+            # Only the main agent owns a resumable investigation clarification;
+            # the unbound legacy path remains an entry reply, not such a task.
+            return self._investigate(state)
         result = ResultBuilder.direct_response(
             state["task_id"],
             state.get("direct_response", ""),
@@ -257,46 +386,134 @@ class QueryWorkflow:
         }
 
     def _answer_qa(self, state: QueryState) -> dict[str, Any]:
+        bundle = load_analysis_evidence(state, self.database_engine)
+        managed = bundle['managed']
+        contexts = ({
+            'scenario': state.get('scenario') or {},
+            'business_methods': json.dumps(self._business_methods(state), ensure_ascii=False),
+            'short_term': state.get('short_term_context', ''),
+            'evidence': bundle['evidence'], 'source_tasks': bundle['source_tasks'],
+            'prior_reports': bundle['prior_reports'],
+            **({'report_reference_closure': bundle['report_reference_closure']}
+               if bundle['report_reference_closure'] else {}),
+            'inherited_evidence_gaps': bundle['evidence_gaps'],
+            'source_gaps': bundle['source_gaps'], 'data_gaps': bundle['data_gaps'],
+        } if managed else {
+            "scenario": state.get("scenario") or {},
+            "business_methods": json.dumps(self._business_methods(state), ensure_ascii=False),
+            "short_term": state.get("short_term_context", ""),
+            "recent_result": state.get("recent_result_context", ""),
+            "selected_tables": state.get("analysis_context", ""),
+        })
+        from ..querying.analysis_evidence import focus_qa_context
+        contexts = focus_qa_context(contexts, state.get('analysis_mode', 'explanation'))
+        report_scope = bundle['report_scope'] if managed else state.get('access_scope') or {}
         qa_result = self.data_qa_agent.run(
-            state["query"],
-            {
-                "scenario": state.get("scenario") or {},
-                "business_methods": json.dumps(self._business_methods(state), ensure_ascii=False),
-                "short_term": state.get("short_term_context", ""),
-                "recent_result": state.get("recent_result_context", ""),
-                "selected_tables": state.get("analysis_context", ""),
-            },
-            state.get("access_scope") or {},
+            state['query'], contexts, report_scope,
         )
         result = ResultBuilder.qa(
             state["task_id"], qa_result, state["intent"], state.get("analysis_sources") or []
         )
-        if homenova.is_homenova(state.get("datasource_id")):
+        result.execution_log = [*state.get('execution_log', []), *result.execution_log]
+        if managed:
+            result.datasource_id = bundle['report_scope']['datasource_id'] or None
+            result.execution_log.append({'stage': 'existing_evidence_reuse',
+                'success': True, 'analysis_mode': state.get('analysis_mode', 'explanation'), 'source_tasks': bundle['source_tasks'],
+                'warnings': qa_result.warnings, 'diagnostics': qa_result.diagnostics,
+                'evidence_ids': [item['id'] for item in bundle['evidence']],
+                **({'report_reference_closure': bundle['report_reference_closure']}
+                   if bundle['report_reference_closure'] else {}),
+                'new_sql_calls': 0})
+            # Keep original result/task/version identities for the next turn;
+            # the API preview remains separate from the rows used in this answer.
+            result.evidence = [{**item, 'rows': item['rows'][:20],
+                                'display_truncated': len(item['rows']) > 20 or item.get('display_truncated', False)}
+                               for item in bundle['evidence']]
+            result.analysis_sources = [{key: item.get(key) for key in
+                ('id', 'task_id', 'datasource_id', 'version', 'goal', 'columns', 'total_rows', 'complete')}
+                for item in bundle['evidence']]
+            if qa_result.evidence_gaps:
+                result.status = 'partial'
+                result.message = '已整理已有证据；原调查仍有未解决缺口'
+                result.stop_reason = '；'.join(qa_result.evidence_gaps)
+        skip_content_review = bool(qa_result.report) and not getattr(getattr(self, 'config', None), 'report_content_review_enabled', True)
+        if skip_content_review:
+            result.content_review_status = 'skipped'
+            result.final_reviewed = False
+            result.execution_log.append({'stage': 'content_review_skipped', 'reason': 'Independent content review disabled by configuration'})
+        if homenova.is_homenova(state.get("datasource_id")) and not skip_content_review:
             budget = current_budget.get()
             if budget:
                 budget.phase = "closing"
                 budget.model_node = "qa_delivery_review"
-            review = self.model_client.chat_json(
-                "你是已有结果问答的独立交付审核。检查草稿是否符合问题、来源SQL、时间/口径/单位和完整性。"
-                "只返回JSON {valid:boolean, approved_text:string, reason:string}，approved_text是可直接展示的审核定稿。"
-                "预览不能用于全集计算，不把缺结果当零，不夸大因果；来源query_validations的pending_checks需要结合SQL与数据核对，"
-                "不能把基础检查通过当成业务正确；不可支持的部分明确说明。",
-                json.dumps({"question": state["query"], "draft": qa_result.report.markdown if qa_result.report else qa_result.answer,
-                    "scenario": state.get("scenario"), "recent_result": state.get("recent_result_context"),
-                    "selected_results": state.get("analysis_context")}, ensure_ascii=False))
-            approved = str(review.get("approved_text") or "").strip()
+            from ..querying.analysis_output import analysis_schema, resolve_analysis_review
+            from ..structured_output import using_output_schema
+            draft = qa_result.report.markdown if qa_result.report else qa_result.answer
+            review_evidence = model_analysis_context(bundle['evidence']) if managed else []
+            review_context = {"question": state["query"], "analysis_mode": state.get("analysis_mode", "explanation"),
+                "draft": draft, "scenario": state.get("scenario"),
+                **({'evidence': review_evidence, 'source_tasks': contexts['source_tasks'],
+                    'trust_boundary': contexts['trust_boundary'], 'evidence_gaps': qa_result.evidence_gaps,
+                    'report_metadata': qa_result.report.model_dump(mode='json', exclude={'data_sources', 'markdown'}) if qa_result.report else None}
+                   if managed else {'recent_result': state.get('recent_result_context'),
+                                    'selected_results': state.get('analysis_context')})}
+            review_payload = json.dumps(review_context, ensure_ascii=False)
+            allowed_evidence_ids = {item['id'] for item in review_evidence}
+            with using_output_schema('existing_evidence_review', analysis_schema(review=True, evidence_ids=list(allowed_evidence_ids))):
+                review = self.model_client.chat_json(
+                    "你是已有结果问答的独立交付审核。检查草稿是否符合问题、来源SQL、时间/口径/单位和完整性。"
+                    "只返回给定Schema的JSON。approved_text必须为空，禁止重写整份报告。原稿无需修改时approve_draft_unchanged=true、text_edits=[]。"
+                    "audit_findings覆盖metric_scope、calculation_method、claim_strength、capability、answer_coverage，简短说明具体核对依据；"
+                    "每个具体问题分别给唯一finding_id，即使criterion相同。纯措辞修订用精确text_edits，finding用text_edit_indices绑定自己的零基补丁索引，不能跨问题共用。"
+                    "supported或missing_evidence的text_edit_indices=[]、resolved_in_final=false。correction_required仅在自己的措辞补丁能修好时resolved_in_final=true；"
+                    "数字、单位或计算方法错误，当前请求必需但本轮未取得的证据，不能用文字补丁解决，应valid=false并具体说明。"
+                    "evidence_ids只能引用提供的结果；context_refs仅可用current_question、evidence_metadata、evidence_gaps、draft、trust_boundary。"
+                    "预览不能用于全集计算，不把缺结果当零，不夸大因果；来源query_validations的pending_checks需要结合SQL与数据核对，"
+                    "不能把基础检查通过当成业务正确；缺失解释限制字段不代表可以任意解释。历史已审核仅是历史交付状态，草稿保留的旧主张也须本轮核查。"
+                    "本轮未取证不等于源数据不存在；重排报告不等于核实事实。用户请求列明不确定项时，准确承认未取证本身可以通过，不要求补查整个旧调查。"
+                    "analysis_mode=fact时只核对本次数值/差额/比例和实际答复，不追补旧调查或保留超出问题的因果故事。",
+                    review_payload)
+            review_record = {'stage': 'qa_delivery_review', 'review': deepcopy(review),
+                'context': {key: deepcopy(value) for key, value in review_context.items() if key != 'evidence'},
+                'evidence_metadata': [{key: deepcopy(value) for key, value in item.items() if key != 'rows'}
+                                      for item in review_evidence],
+                'input_sha256': hashlib.sha256(review_payload.encode()).hexdigest(),
+                'validation_errors': []}
+            result.reviews.append(review_record)
+            try:
+                approved = resolve_analysis_review(review, draft, allowed_evidence_ids)
+            except ValueError as exc:
+                review_record['validation_errors'].append(str(exc))
+                review = {'valid': False, 'reason': str(exc)}
+                approved = ''
+            if approved and managed:
+                try:
+                    candidate = (qa_result.report.model_copy(deep=True) if qa_result.report else
+                                 AnalysisReport(
+                                     title='已有结果追问', markdown=approved,
+                                     data_sources=self.data_qa_agent._investigation_sources(bundle['evidence'], report_scope)))
+                    candidate.markdown = approved
+                    self.data_qa_agent.validate_investigation_report(candidate, bundle['evidence'], report_scope)
+                except (ValueError, PermissionError) as exc:
+                    review = {'valid': False, 'reason': f'审核定稿的证据引用未通过检查：{exc}'}
+                    review_record['validation_errors'].append(review['reason'])
+                    approved = ''
             if approved:
                 result.analysis = approved
                 if result.report:
                     result.report.markdown = approved
-            result.final_reviewed = bool(review.get("valid")) and bool(approved)
+            result.final_reviewed = review.get("valid") is True and bool(approved)
+            review_record['accepted'] = result.final_reviewed
             if not result.final_reviewed:
                 result.status = "partial"
                 result.message = "部分完成（已有结果审核未通过）"
                 result.analysis = "尚未完成交付审核：" + str(review.get("reason") or "证据不足")
+                result.stop_reason = '；'.join(filter(None, [result.stop_reason, str(review.get('reason') or '证据不足')]))
                 result.report = None
         return {
             "workflow_mode": "qa_report" if qa_result.report else "qa",
+            'analysis_evidence': bundle['evidence'] if managed else [],
+            'analysis_evidence_gaps': qa_result.evidence_gaps if managed else [],
             "result": result.model_dump(mode="json"),
         }
 
@@ -589,6 +806,9 @@ class QueryWorkflow:
         result.preview_truncated = execution.preview_truncated
         result.complete = execution.complete
         result.result_ref = execution.result_ref
+        # Bind the persisted result to the actual executed database, even when
+        # the legacy entry point did not explicitly select a source.
+        result.datasource_id = database
         if analysis_failed:
             result.message = "结果说明生成失败"
         return {"execution_log": log, "tool_calls": [call], "result": result.model_dump(mode="json")}

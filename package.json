@@ -1,0 +1,29 @@
+{
+  "name": "askdata-agent",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "apps/insightpilot",
+    "packages/contracts"
+  ],
+  "scripts": {
+    "dev": "npm run build --workspace @datafoundry/contracts && npm run dev --workspace @insightpilot/web",
+    "build": "npm run build --workspace @datafoundry/contracts && npm run build --workspace @insightpilot/web",
+    "start": "npm run start --workspace @insightpilot/web",
+    "test:web": "npm run test --workspace @insightpilot/web"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.8.0"
+  },
+  "overrides": {
+    "@ag-ui/client": "^0.0.57",
+    "@ag-ui/core": "^0.0.57",
+    "@ag-ui/langgraph": "0.0.42"
+  }
+}

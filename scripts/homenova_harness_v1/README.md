@@ -2,6 +2,32 @@
 
 实际应用为 `references/askdata_studio`，API 8001、前端 5174。不得启动其他副本或执行Demo数据库初始化。
 
+## 2026-10-29 ReAct 版本
+
+当前调查默认 `react_v1`：Flash只做路由与任务理解，Skill由ReAct按白名单读取；不调用Planner或过程Reviewer。查询批次中的每条SQL分别只读执行、计数和留存，草稿后独立最终审核。简单查数和已有结果问答保留原路径。
+
+本轮三个不同真实任务名额已用完，**不得继续运行或换目录绕过台账**。两题预算估算误停，一题虽然系统completed但独立业务核查不通过；后续修复只有本地验证。见[本轮报告](../../docs/homenova_react_v1_report.md)、[固定标准](../../docs/homenova_react_v1_acceptance.md)、[逐任务过程](../../data/homenova_harness_v1/private/react_v1_20261029/process_reports/index.html)。报告可用 `python3 scripts/homenova_harness_v1/build_react_v1_reports.py` 离线生成，不新增模型调用。
+
+启动仍用原脚本：
+
+```sh
+references/askdata_studio/backend/.venv/bin/python scripts/homenova_phase_e/start.py start --record-dir data/homenova_harness_v1/private/react_v1_20261029/runtime_user
+```
+
+界面 http://127.0.0.1:5174/ 沿用原登录。打开已保存任务可用界面按钮或 `?task_id=编号`，只读打开不自动续跑。中断任务须明确继续；预算、已完成结果和已确定期间继承。
+
+任务和结果保存到 `references/askdata_studio/backend/data/harness_runtime/state.sqlite3`，内存作缓存。`HARNESS_STATE_PATH`可换路径；`HARNESS_STATE_MAX_BYTES`默认536870912，是保守写入容量准入，不是系统硬配额；超额回滚本次保存并保留旧记录，无自动删除。
+
+最新预算配置：`HARNESS_REACT_ROUND_LIMIT=5`、`HARNESS_SQL_GENERATION_LIMIT=2`。正常ReAct决策包括选择Skill、检索、查询、计算和决定交付；SQL技术重写不占5轮，但每条逻辑SQL最多首次生成加一次重写。Flash、草稿和最终审核也不占5轮，仍独立记录模型调用。因此不能把“5轮”理解为总模型调用最多5次。
+
+Token仅估算和记录：实际API usage与未知用量估计分开，不再按应用层单输入、累计、输出或收尾token限额停止。旧`HARNESS_MODEL_TOKENS`、`HARNESS_RETRIEVAL_TOKENS`、`HARNESS_INPUT_TOKENS`、`HARNESS_OUTPUT_TOKENS`、`HARNESS_CLOSING_TOKENS`数值属于之前政策，不代表当前准入上限。工具20、非SQL额外修复2、主动300秒／调查240秒及前端360秒继续有效，旧重规划1次在ReAct中退役；服务自身的上下文窗口、输出能力和账户额度仍是外部约束。[最新调整报告](../../docs/homenova_react_iteration_budget_report.md)
+
+所有数据源的“今天”采用机器真实时刻和既有业务时区；“最近”无明确时长且无可继承期间时先问。超出快照覆盖不当零、不静默换期。
+
+## 以下为2026-10-28及以前的历史记录
+
+旧“当前任务在内存”“不能恢复”“入口选择Skill”“重规划1次”等描述属于当时实现，冲突时以上述ReAct版本和最新方案为准；旧台账和失败不改写。
+
 2026-10-28最新实施：后端129项、E适配14项及前端构建通过；用户授权的两个不同自然问题均已运行一次且失败，**两次额度已用完，当前不得新增真实调用或全量回归。** `run_budgeted_acceptance.py`持久锁定台账并拒绝重复／第三次运行；下面旧runner例子仅保留历史用法，不是本轮继续运行指令。完整状态见`docs/homenova_harness_v1_implementation_v2_report.md`。
 
 逐任务全过程、Skill记录和token汇总在`private/implementation_v2/process_reports/index.html`，可用`python3 scripts/homenova_harness_v1/build_latest_reports.py`离线重新生成，不调用模型／网络。未来运行的`budget.events`记录入口路由／Skill选择、实际节点Skill注入及正文指纹、工具／修复／重规划事件；原两题没有逐节点打点的部分明确注明还原依据或未知，不回填成真实事件。

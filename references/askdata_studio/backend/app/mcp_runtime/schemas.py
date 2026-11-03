@@ -36,6 +36,7 @@ class DatabaseQueryResult(BaseModel):
     rows: list[dict[str, Any]] = Field(default_factory=list, description="查询结果，最多200行")
     row_count: int = Field(default=0, description="返回结果行数")
     error: str | None = Field(default=None, description="执行失败时的错误信息")
+    error_kind: str | None = Field(default=None, description="失败类型；storage表示持久化失败，禁止按SQL错误重试")
 
     total_rows: int | None = None
     preview_truncated: bool = False

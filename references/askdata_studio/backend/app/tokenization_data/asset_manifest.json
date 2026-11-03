@@ -1,0 +1,21 @@
+{
+  "repository": "https://github.com/QwenLM/Qwen-Agent",
+  "commit": "31a4d36d123688581a9e9744427272b33ce940e0",
+  "files": {
+    "qwen.tiktoken": {
+      "source": "https://raw.githubusercontent.com/QwenLM/Qwen-Agent/31a4d36d123688581a9e9744427272b33ce940e0/qwen_agent/utils/qwen.tiktoken",
+      "bytes": 2561218,
+      "sha256": "b2b1b8dfb5cc5f024bafc373121c6aba3f66f9a5a0269e243470a1de16a33186"
+    },
+    "tokenization_qwen.py.upstream": {
+      "source": "https://raw.githubusercontent.com/QwenLM/Qwen-Agent/31a4d36d123688581a9e9744427272b33ce940e0/qwen_agent/utils/tokenization_qwen.py",
+      "bytes": 8924,
+      "sha256": "f6fdddd23643224ddb6e97b57605c205dd85d6135523fc5dc9ab18b0bde94d7e"
+    },
+    "LICENSE.qwen-agent": {
+      "source": "https://raw.githubusercontent.com/QwenLM/Qwen-Agent/31a4d36d123688581a9e9744427272b33ce940e0/LICENSE",
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    }
+  }
+}

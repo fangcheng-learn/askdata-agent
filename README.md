@@ -1,33 +1,34 @@
-# AskData Agent
+# AskData Agent / InsightPilot
 
-AskData Studio 与 HomeNova Harness V1 的独立源码快照。后端采用 FastAPI / LangGraph，前端采用 Vue 3，支持自然语言查数、已有结果问答和多步骤经营调查。
+HomeNova 数据分析助手：FastAPI / LangGraph 后端与 InsightPilot React / Next.js 工作台。支持自然语言查数、授权元数据问答、已有结果追问、经营调查和报告生成。
 
-本仓库保留现有相对目录，供 HomeNova 数据路径、测试和脚本使用。它记录的是当前实现；方案文档中的规划不代表全部已经实现或验证，具体状态见设计文档和实施报告。
+当前前端是 `apps/insightpilot`，后端是 `references/askdata_studio/backend`。旧 Vue 前端保留在 `references/askdata_studio/frontend`，供历史兼容使用。
 
-## 仓库内容
+## 当前行为（2026-11-03）
 
-- `references/askdata_studio/`：实际应用、测试、依赖清单及已有演示 CSV 数据。
-- `docs/ecommerce_agent_design_decisions.md`：产品与设计基线。
-- `docs/agent_skills/`：业务 Skill 文档；运行时使用应用内明确注册的 Skill。
-- `scripts/homenova_harness_v1/`：Harness 开发、校验及报告脚本。
-- `scripts/homenova_phase_e/`：HomeNova 适配、语义构建和启动脚本。
-- `data/homenova_phase_d/public/`：两份 HomeNova 公开快照。
-- `data/homenova_phase_e/public_semantics/`：对应的公开指标、Schema 和能力说明。
+- 元数据请求由入口模型理解，读取授权目录后交由问答 Agent 回答，不使用关键词规则或固定字段表替代答案。
+- 基于已有结果生成报告时复用原始结果及权限绑定，单独整理报告，不重开调查或重置旧调查预算。
+- 独立报告内容审核目前暂停：`REPORT_CONTENT_REVIEW_ENABLED=false`。报告明确显示未经过独立内容审核；权限、引用和数据来源检查仍保留。
+- 必要入口问题先等待用户回答；调查中的可选背景问题支持跳过。
+- 保留当前有效判断、相关正常检查与反证；减少重复上下文，按需读取历史结果。
 
-未包含 DataFoundry、运营版副本、密钥、依赖环境、向量缓存、会话记忆、数据库文件、私有题库、参考答案或原始运行日志。历史报告中指向本机私有文件的链接不随本仓库发布；依赖这些历史文件的离线回放脚本需要单独提供文件。
+最新状态见 [检查点](docs/homenova_protocol_overhaul_checkpoint.md) 和 [恢复 Agent 回答与暂停审核说明](docs/homenova_agent_restore_review_pause_20261103.md)。离线验证通过不等于真实业务报告质量已验收。
 
-## 安装与启动
+## 安装
 
-需要 Python 3.11、Node.js 20.19 或更高版本，以及现有模型服务配置。以下命令从本仓库根目录执行：
+需要 Python 3.11 和 Node.js 22 或以上。以下命令从仓库根目录运行：
 
 ```bash
 python3.11 -m venv references/askdata_studio/backend/.venv
 references/askdata_studio/backend/.venv/bin/python -m pip install -r references/askdata_studio/backend/requirements.txt
 cp references/askdata_studio/backend/.env.example references/askdata_studio/backend/.env
-npm --prefix references/askdata_studio/frontend ci
+npm ci
+npm run build
 ```
 
-在后端 `.env` 中填写自己的 API Key 和模型设置。现有配置项见 `.env.example` 和 `backend/app/config.py`。密钥保留在本机。
+在后端 `.env` 中配置自己的模型服务。配置项见 `.env.example` 和 `backend/app/config.py`，不要提交密钥。公开 HomeNova 演示快照与语义定义已包含；会话数据库、模型调用记录、缓存、私有题库和参考答案不包含在仓库中。
+
+## 启动
 
 分别打开两个终端：
 
@@ -38,28 +39,37 @@ cd references/askdata_studio/backend
 ```
 
 ```bash
-# 终端二（从仓库根目录执行）
-npm --prefix references/askdata_studio/frontend run dev
+# 终端二，从仓库根目录运行
+npm start
+# 开发模式可使用 npm run dev
 ```
 
-界面：http://127.0.0.1:5174/ 。API 文档：http://127.0.0.1:8001/docs 。内置演示账号见应用 README。
+工作台：http://127.0.0.1:5174/data-tasks 。API 文档：http://127.0.0.1:8001/docs 。登录账号与权限说明见 [后端应用说明](references/askdata_studio/README.md)。
 
-原有 `scripts/homenova_phase_e/start.py` 与桌面启动脚本也保留，但含开发机 Node / 共享配置路径；在其他机器上优先使用上面的直接启动命令。首次检索需要用配置的 Embedding 服务构建本地索引，可能产生模型费用。
+开发机服务管理脚本 `scripts/homenova_phase_e/start.py` 及桌面启动器保留原配置，其中含开发机 Node 和共享配置路径；其他机器优先使用上面的直接启动命令。首次检索构建索引可能调用 Embedding 服务并产生费用。
 
-## 本地验证
+## 验证
 
 ```bash
 cd references/askdata_studio/backend
-.venv/bin/python -m unittest discover -s tests -v
+PYTHONPATH=.:tests .venv/bin/python -m unittest tests.test_agent_owned_delivery tests.test_multiturn_evidence tests.test_investigation_report -v
 ```
 
 ```bash
-# 从仓库根目录执行
-npm --prefix references/askdata_studio/frontend run build
+# 从仓库根目录运行
+npm run build
+npm run test:web
 ```
 
-真实模型验收和索引构建会产生费用，需要按自己的预算单独安排。本次上传没有启动模型验收、重新生成数据或重建数据库。
+完整回归与真实场景验收的已知限制记录在检查点中。本次仓库更新没有重新运行真实模型调查或重建数据库。
 
-## 快照来源
+## 目录与来源
 
-从本机 `dataagent` 工作区按上述范围复制，独立初始化 Git，未导入 DataFoundry 的 Git 历史，也未修改原工作区的远程仓库或提交状态。
+- `apps/insightpilot/`：当前工作台。
+- `packages/contracts/`：工作台使用的共享类型。
+- `references/askdata_studio/`：后端、测试、旧前端及基础演示数据。
+- `data/homenova_phase_d/public/`、`data/homenova_phase_e/public_semantics/`：授权演示快照及语义。
+- `scripts/homenova_phase_e/`、`scripts/homenova_harness_v1/`：启动、开发和验证脚本。
+- `docs/`：设计记录及实施状态。历史文档中的本机私有日志链接不会随仓库发布。
+
+InsightPilot 前端及共享类型基于 DataFoundry，保留其 Apache-2.0 许可；来源记录见 `apps/insightpilot/datafoundry-source-manifest.json`。本仓库保持独立历史，未导入完整 DataFoundry 项目。`SOURCE_SNAPSHOT.json` 记录本次同步范围及源文件哈希。

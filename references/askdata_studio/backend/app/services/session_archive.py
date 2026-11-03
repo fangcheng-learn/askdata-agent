@@ -56,7 +56,7 @@ class SessionArchive:
         with self._lock, closing(self._connect()) as connection, connection:
             rows = connection.execute(
                 """
-                SELECT task_id, session_id, query, workspace_json, result_json
+                SELECT task_id, session_id, query, workspace_json, result_json, updated_at
                 FROM session_turns
                 ORDER BY created_at, rowid
                 """
@@ -68,9 +68,25 @@ class SessionArchive:
                 "query": row[2],
                 "workspace": json.loads(row[3]),
                 "result": json.loads(row[4]),
+                "updated_at": row[5],
             }
             for row in rows
         ]
+
+    def hidden_sessions(self, user_id: str, datasource_id: str) -> set[str]:
+        if not self.enabled:
+            return set()
+        with self._lock, closing(self._connect()) as connection:
+            rows = connection.execute('SELECT session_id FROM hidden_history_sessions '
+                'WHERE user_id=? AND datasource_id=?', (user_id, datasource_id)).fetchall()
+        return {row[0] for row in rows}
+
+    def hide_session(self, user_id: str, datasource_id: str, session_id: str) -> None:
+        if not self.enabled:
+            raise RuntimeError('会话持久化未启用，无法保存历史隐藏状态')
+        with self._lock, closing(self._connect()) as connection, connection:
+            connection.execute('INSERT OR IGNORE INTO hidden_history_sessions '
+                '(user_id,datasource_id,session_id) VALUES (?,?,?)', (user_id, datasource_id, session_id))
 
     def save_message(
         self,
@@ -194,6 +210,12 @@ class SessionArchive:
                     summary TEXT NOT NULL,
                     summarized_ids_json TEXT NOT NULL,
                     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE TABLE IF NOT EXISTS hidden_history_sessions (
+                    user_id TEXT NOT NULL,
+                    datasource_id TEXT NOT NULL,
+                    session_id TEXT NOT NULL,
+                    PRIMARY KEY(user_id, datasource_id, session_id)
                 );
                 """
             )

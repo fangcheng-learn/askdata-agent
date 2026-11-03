@@ -1,0 +1,124 @@
+/* Design tokens copied directly from apps/web/src/app/globals.css.
+ * Component styles below adapt DataTaskChatInput.tsx and SessionConfigBar.tsx to Vue. */
+:root {
+  /* Codex-style neutral workbench palette */
+  --primary: #0d0d0d;
+  --primary-light: #3a3a3a;
+  --accent: #737373;
+  --surface: #ffffff;
+  --surface-subtle: #f7f7f8;
+  --border: #ececf0;
+  --foreground: #0d0d0d;
+  /* Text hierarchy — use --text-* (not --muted) so CopilotKit's [data-copilotkit] scope
+     cannot override secondary copy colors (it redefines --muted as a surface tone). */
+  --text-secondary: #4d4d4d;
+  --text-tertiary: #8a8a99;
+  --muted: var(--text-secondary);
+  --muted-light: var(--text-tertiary);
+  --muted-foreground: var(--text-secondary);
+  --code-bg: #171717;
+
+  /* Semantic step tones — muted, low-chroma jewel palette for a restrained feel */
+  --step-inspect: #4d6f96;
+  --step-query: #74628f;
+  --step-transform: #3f827f;
+  --step-fetch: #3f769b;
+  --step-visualize: #635c8e;
+  --step-knowledge: #3f7480;
+  --step-success: #3f7d63;
+  --step-warning: #9a6a30;
+  --step-error: #a24f49;
+  --step-glow: rgb(13 13 13 / 0.08);
+
+  --radius-card: 0.625rem;
+  --shadow-card: 0 1px 1px rgb(13 13 13 / 0.02);
+  --shadow-card-hover: 0 2px 8px rgb(13 13 13 / 0.04);
+
+  /* Overlay scrollbars — hidden until the scroll container is hovered/focused */
+  --scrollbar-size: 6px;
+  --scrollbar-thumb: rgb(13 13 13 / 0.16);
+  --scrollbar-thumb-hover: rgb(13 13 13 / 0.28);
+
+  /* Local system stacks — avoid next/font/google (Turbopack + offline CDN failures).
+     Include CJK-capable faces so zh-CN copy does not fall back to missing-glyph boxes
+     on Linux/WSL environments that ship WenQuanYi / Noto CJK. */
+  --font-inter: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC",
+    "WenQuanYi Micro Hei", sans-serif; /* CJK_FALLBACK_STACK_V1 */
+  --font-fira-code: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+}
+
+:root {
+  --ink: var(--foreground);
+  --line: var(--border);
+  --green: var(--primary);
+  --green-soft: var(--surface-subtle);
+}
+.foundry-workbench {
+  --text-primary: var(--foreground);
+  --text-secondary: #4d4d4d;
+  --text-muted: var(--text-tertiary);
+  font-family: var(--font-inter);
+  grid-template-columns: 260px minmax(420px, 1fr) clamp(330px, 30vw, 460px);
+  color: var(--foreground);
+  background: var(--surface);
+}
+.foundry-workbench.resource-page-open { grid-template-columns: 260px minmax(0, 1fr); }
+.workbench-sidebar { background: var(--surface-subtle); }
+.workbench-results, .workbench-chat, .workbench-composer, .workbench-resource-page { background: var(--surface); }
+.workbench-logo, .workbench-account > span, .welcome-emblem, .empty-symbol, .assistant-mark, .resource-page-icon {
+  color: var(--text-tertiary); background: var(--surface-subtle); border-color: var(--border);
+}
+.workbench-brand strong { font-size: 19px; color: var(--foreground); }
+.workbench-brand small { color: var(--text-tertiary); }
+.workbench-new { color: var(--surface); background: var(--primary); border: 1px solid var(--primary); font-size: 14px; border-radius: var(--radius-card); }
+.workbench-new:hover { background: var(--primary-light); }
+.resource-nav button { font-size: 14px; border: 1px solid transparent; }
+.resource-nav button > span { color: var(--foreground); }
+.resource-nav button > svg { color: var(--text-tertiary); }
+.resource-nav button.selected, .workbench-history-row.active { background: var(--surface); border-color: var(--border); box-shadow: var(--shadow-card); }
+.resource-nav button:hover, .workbench-history-row:hover { background: var(--surface); }
+.workbench-history-row > button:first-child { color: var(--text-secondary); font-size: 13px; }
+.workbench-history-row.active > button:first-child { color: var(--foreground); font-weight: 600; }
+.history-search { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); }
+.workbench-scope button, .scope-ready, .welcome-tags span, .result-open-card, .branch-notice, .resource-note, .reference-chips > span {
+  color: var(--text-secondary); background: var(--surface-subtle); border-color: var(--border);
+}
+.business-prompts > button { border-color: var(--border); border-radius: 12px; box-shadow: var(--shadow-card); }
+.business-prompts > button:hover { background: var(--surface-subtle); border-color: #d4d4d8; box-shadow: var(--shadow-card-hover); }
+.prompt-heading > svg, .result-card-icon { color: var(--text-tertiary); background: transparent; }
+.results-tabs button.active { color: var(--surface); background: var(--primary); border-bottom-color: transparent; border-radius: 8px; }
+.results-tabs { gap: 8px; padding: 8px 14px; }
+.results-tabs button { padding: 8px 12px; }
+.question-bubble { background: var(--surface-subtle); border-color: var(--border); color: var(--foreground); }
+/* DataTaskChatInput: rounded-2xl, border-border, bg-surface and its exact shadow. */
+.workbench-input-box { border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: 0 8px 28px -6px rgba(15,23,42,.12), 0 2px 8px -2px rgba(15,23,42,.05); }
+.workbench-input-box:focus-within { border-color: #d4d4d8; box-shadow: 0 8px 28px -6px rgba(15,23,42,.12), 0 2px 8px -2px rgba(15,23,42,.05); }
+.workbench-input-box textarea { font-size: 15px; color: var(--foreground); }
+.workbench-input-box textarea::placeholder { color: var(--text-tertiary); }
+.send-analysis { color: var(--surface); background: var(--primary); border-radius: 50%; }
+.send-analysis:hover { background: var(--primary-light); }
+.composer-model select { color: var(--foreground); font-weight: 500; }
+.composer-resources .resource-picker-trigger { border-radius: 999px; background: var(--surface); border: 1px solid var(--border); padding: 5px 8px; font-size: 12px; color: var(--text-secondary); }
+.composer-resources .resource-picker-trigger.active { background: var(--surface-subtle); border-color: var(--text-tertiary); color: var(--foreground); }
+/* SessionConfigBar: rounded-2xl border-border bg-surface shadow-xl. */
+.resource-picker-panel { border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: 0 20px 25px -5px rgb(0 0 0 / .1), 0 8px 10px -6px rgb(0 0 0 / .1); }
+.picker-options strong { color: var(--foreground); font-size: 14px; }
+.picker-options small { color: var(--text-tertiary); font-size: 12px; }
+.picker-options > label:hover, .resource-picker-panel header > span { background: var(--surface-subtle); }
+/* SessionConfigBar Toggle: h-5 w-9; checked bg-primary, unchecked bg-border. */
+.picker-options input { width: 36px; height: 20px; background: var(--border); }
+.picker-options input::after { width: 16px; height: 16px; top: 2px; left: 2px; background: var(--surface); }
+.picker-options input:checked { background: var(--primary); }
+.picker-options input:checked::after { transform: translateX(16px); }
+.resource-page-header { border-color: var(--border); }
+.workbench-resource-page .resource-option { border: 1px solid var(--border); background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-card); }
+.workbench-resource-page .resource-option:has(input:checked) { border-color: #bdbdc3; background: var(--surface-subtle); }
+.resource-option input { accent-color: var(--primary); }
+.resource-manage, .result-toolbar button, .turn-actions button { color: var(--text-secondary); }
+.result-status > span.completed { color: var(--step-success); background: color-mix(in srgb, var(--step-success) 8%, white); }
+.result-status > span.failed { color: var(--step-error); background: color-mix(in srgb, var(--step-error) 8%, white); }
+.result-status > span.partial, .business-warning { color: var(--step-warning); background: color-mix(in srgb, var(--step-warning) 8%, white); }
+.running-dot { background: var(--step-success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--step-success) 12%, transparent); }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible { outline-color: var(--text-tertiary); }

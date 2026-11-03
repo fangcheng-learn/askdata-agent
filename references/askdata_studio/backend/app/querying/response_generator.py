@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from ..agent_configuration_runtime import effective_prompt
+from ..prompt_defaults import RESULT_DRAFT_SYSTEM, SIMPLE_REVIEW_SYSTEM
+
 from typing import Any
 import json
 
@@ -31,9 +34,7 @@ class ResponseGenerator:
         business_methods: dict[str, str] | None = None,
         query_validation: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        system = """你是查询结果整理器。检查结果能否回答问题，并生成简短标题和一到两句说明。
-只能使用结果中真实存在的数值。只返回JSON：
-{"valid":true,"reason":"...","title":"...","analysis":"..."}。"""
+        system = effective_prompt('result_draft', RESULT_DRAFT_SYSTEM)
         method_text = "\n当前选中的业务Skill规则：\n" + "\n".join((business_methods or {}).values())
         system += method_text
         user = (
@@ -56,10 +57,7 @@ class ResponseGenerator:
                 for name, instructions in (business_methods or {}).items():
                     budget.skill(name, instructions, budget.model_node)
             review = self.model_client.chat_json(
-                "你是查询结果整理器的独立交付审核节点。检查草稿与真实证据的指标、事件时间、单位、联结粒度和关键数字。"
-                "只输出JSON {valid:boolean,reason:string,title:string,analysis:string}。直接提供可展示的审核定稿。"
-                "数据不全不能按预览求全集；不得夸大因果。query_validation中的pending_checks须结合SQL与数据核对，"
-                "规范化不代表业务正确；可解释的等价表达无需强行返工，未解决的实质错误不能放行。尚未回答完整时valid=false并说明限制。" + method_text,
+                effective_prompt('simple_review', SIMPLE_REVIEW_SYSTEM) + method_text,
                 json.dumps({"question": query, "sql": execution.sql, "schema": schema_context,
                     "rows": execution.rows[:self.table_row_limit], "total_rows": execution.total_rows,
                     "complete": execution.complete, "review_input_truncated": len(execution.rows)>self.table_row_limit or execution.preview_truncated,
