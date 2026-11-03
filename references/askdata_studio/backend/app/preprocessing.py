@@ -94,6 +94,8 @@ class RequestPreprocessor:
     @staticmethod
     def _output_schema(recent_context: str) -> dict:
         schema = PreparedOutput.model_json_schema()
+        for key in ('analysis_task_ids', 'analysis_result_ids'):
+            schema['properties'][key]['maxItems'] = 0
         # route_context is serialized server JSON after the time/source
         # preamble. Values inside user text remain JSON-escaped, never parsed
         # as new reference candidates.
@@ -111,6 +113,7 @@ class RequestPreprocessor:
                           for e in h.get('available_evidence') or [] if e.get('result_id')))
         for key, choices in [('analysis_task_ids', task_ids), ('analysis_result_ids', result_ids)]:
             if choices:
+                schema['properties'][key].pop('maxItems', None)
                 schema['properties'][key]['items']['enum'] = choices
         return schema
 

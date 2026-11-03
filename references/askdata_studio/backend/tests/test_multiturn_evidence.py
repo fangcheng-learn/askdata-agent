@@ -448,6 +448,29 @@ class MultiturnEvidenceTest(unittest.TestCase):
         self.assertEqual(selected['status'], 'partial')
         self.assertEqual([item['id'] for item in selected['evidence']], ['old-task:R1', 'old-task:R2'])
 
+    def test_single_query_router_reference_loads_same_saved_result_for_report(self):
+        from app.preprocessing import RequestPreprocessor
+        context = SessionContext(SimpleNamespace(), Settings(api_key='', session_archive_enabled=False,
+                                                            short_term_summary_enabled=False))
+        entry = self.entries[0]
+        result = QueryResult(task_id='old-task', route='database_query', status='completed', message='ok',
+                             datasource_id=SOURCE, scenario=SNAPSHOT, evidence=[],
+                             result_ref=entry['result_ref'], complete=True, total_rows=300,
+                             columns=entry['columns'], rows=[{'month': 'row-0', 'gmv': 0}], sql=entry['sql'])
+        context.remember('same-session', result, '比较两个月', {}, 'user-1')
+        headers = context._evidence_headers(result)
+        catalog = json.dumps({'recent_turns': [{'turn_id': 'old-task', 'available_evidence': headers}]})
+        choices = RequestPreprocessor._output_schema(catalog)['properties']['analysis_result_ids']['items']['enum']
+        raw, _ = context.analysis_context('same-session', {'analysis_table_ids': ['old-task']})
+        state = self.state(analysis_mode='report', analysis_context=raw, analysis_result_ids=choices)
+        bundle = load_analysis_evidence(state, self.engine)
+        self.assertEqual(choices, ['old-task:R1'])
+        self.assertEqual(len(bundle['evidence'][0]['rows']), 300)
+        self.assertEqual(bundle['evidence'][0]['result_ref'], entry['result_ref'])
+        # Publishing a catalog entry never relaxes the actual owner's access.
+        with self.assertRaises(PermissionError):
+            load_analysis_evidence({**state, 'access_scope': {**self.scope, 'user_id': 'other-user'}}, self.engine)
+
     def test_router_selects_referenced_older_source_and_never_reads_unknown_task(self):
         workflow, _ = self.workflow([])
         workflow.config = Settings(session_archive_enabled=False)

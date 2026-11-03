@@ -69,6 +69,14 @@ class RequestPreprocessorTest(unittest.TestCase):
         self.assertEqual(prepared.response, '')
         self.assertEqual(prepared.analysis_task_ids, ['original'])
 
+    def test_empty_reference_catalog_requires_empty_result_selection(self):
+        context = json.dumps({'recent_turns': [{'turn_id': 'old', 'available_evidence': []}]})
+        schema = RequestPreprocessor._output_schema(context)
+        self.assertEqual(schema['properties']['analysis_task_ids']['items']['enum'], ['old'])
+        self.assertEqual(schema['properties']['analysis_result_ids']['maxItems'], 0)
+        schema = RequestPreprocessor._output_schema('')
+        self.assertEqual(schema['properties']['analysis_task_ids']['maxItems'], 0)
+
     def test_qa_clears_query_and_retrieval_output(self) -> None:
         model = CountingModel("data_qa")
         result = RequestPreprocessor(model).prepare("解释刚才的结果", "有上一轮结果")

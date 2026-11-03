@@ -183,6 +183,16 @@ class SessionContext:
         # QueryResult.rows. The router needs this catalog to distinguish an
         # existing result question from a new database request, without SQL,
         # row payloads, storage handles, or a second model call.
+        if not result.evidence and result.result_ref and result.status == 'completed':
+            # The evidence reader binds a saved single-query result as task:R1.
+            # Advertise that same ID so the router never invents one from a
+            # task ID or storage reference when continuing into a report.
+            return [{'result_id': f'{result.task_id}:R1',
+                     'goal': result.result_title or '已保存查询结果',
+                     'columns': list(result.columns), 'complete': result.complete,
+                     'total_rows': result.total_rows if result.total_rows is not None else len(result.rows),
+                     'check_status': 'basic_valid', 'metric_names': [],
+                     'time_range': None, 'time_ranges': []}]
         return [{
             'result_id': item.get('id'), 'goal': item.get('goal'),
             'columns': list(item.get('columns') or []),

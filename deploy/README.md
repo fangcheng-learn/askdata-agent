@@ -1,8 +1,9 @@
 # Cloud deployment preparation
 
-Status: isolated trial implementation with offline coverage and live Postgres
-quota checks. Cloud build and end-to-end deployment are still pending. Do not
-advertise a working trial URL yet.
+Status: deployed on Render Free at https://insightpilot-demo.onrender.com.
+Cloud health, guest login, independent visitor histories and a real SQL analysis
+passed. Report continuation testing found a missing single-query evidence catalog;
+the fix has offline coverage and is awaiting cloud verification.
 
 The container packages the Next.js standalone server, Python API, and public
 HomeNova snapshots. Next.js listens on `PORT` (default 10000) and proxies to the
@@ -70,7 +71,7 @@ On Render select Web Service, Docker, repository root as context,
 - For a fresh deployment, initialize its independent Supabase quota schema with
   `deploy/quota_admin.py initialize --secrets-file <private-file> --project-ref <ref>`.
   The original project's database is not reused.
-- Configure secrets in Render's server environment after authorization.
+- For a fresh deployment, configure secrets in Render's server environment after authorization.
 - Test actual container peak memory under a query, frontend/API readiness and
   long-task behavior. Render's free instance has only 512 MB RAM.
 
@@ -90,8 +91,9 @@ upload the developer's existing task history as the deployment database.
   with DuckDB's trial memory limit of 128 MB and one thread. Observed macOS peak
   RSS was approximately 264 MiB. This does not establish a Linux 512 MB container
   peak, especially with Next.js and a complete analysis running together.
-- Docker daemon is not running and UI access to Docker was declined. Container
-  build, end-to-end cloud run and peak-memory verification remain pending.
+- Render successfully built and started the Docker image on Free compute.
+  A live two-month metric query completed; peak memory for a full eight-round
+  investigation is not yet established.
 - The newly created, independent demo Supabase project is reachable. Live checks
   use a randomly named disposable schema, separate from public counters. They
   cover competing starts, parallel monetary reservations, daily reset, two-start
@@ -101,4 +103,10 @@ upload the developer's existing task history as the deployment database.
   record isolation. Live checks do not call a model or consume model budget.
 - All 7 live Postgres checks passed; their disposable schema was cleaned up.
   The independent demo project's 4 production quota tables were initialized.
-- No real model calls or cloud deployment have occurred in this implementation.
+- Real cloud model calls are recorded by the independent quota ledger. The first
+  live test produced a saved table and analysis. A follow-up report exposed that
+  ordinary query results lacked the stable R1 catalog already expected by the
+  evidence reader. The fix publishes the same ID to the router and requires empty
+  result selection when no catalog exists; owner/source checks remain intact.
+- 75 focused offline regressions passed after that fix, including saved-result
+  continuation and rejection of another visitor's evidence.
