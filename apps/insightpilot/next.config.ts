@@ -4,6 +4,7 @@ import type { NextConfig } from "next";
 const workspaceRoot = path.join(__dirname, "../..");
 
 const nextConfig: NextConfig = {
+  ...(process.env.INSIGHTPILOT_STANDALONE === "1" ? { output: "standalone" as const } : {}),
   // Stage a build without replacing assets used by the running workbench.
   distDir: process.env.INSIGHTPILOT_BUILD_DIR || ".next",
   outputFileTracingRoot: workspaceRoot,
