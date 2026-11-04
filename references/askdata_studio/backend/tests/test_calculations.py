@@ -44,7 +44,7 @@ class CalculationProtocolTest(unittest.TestCase):
     def test_actual_schema_exposes_all_operations_and_forbids_extra(self):
         schema = model_tool_schema()
         self.assertEqual(set(schema['discriminator']['mapping']),
-                         {'sum', 'column_stats', 'change', 'ratio', 'period_change', 'product_decomposition', 'state_duration'})
+                         {'sum', 'column_stats', 'change', 'ratio', 'align_results', 'period_change', 'product_decomposition', 'state_duration'})
         self.assertFalse(schema['$defs']['PeriodChangeRequest']['additionalProperties'])
 
     def test_wide_change_preserves_original_columns_and_decimal_precision(self):

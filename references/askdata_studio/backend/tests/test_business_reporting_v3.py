@@ -57,19 +57,19 @@ class BusinessReportingV3Test(unittest.TestCase):
         self.assertEqual(result.diagnostics, [])
         self.assertNotIn('source_version', chart, 'The provider output is not silently mutated')
         self.assertIn('正向抵消', calls[0][0])
-        self.assertIn('先用一至三段给当前结论', calls[0][0])
+        self.assertIn('analysis_points', calls[0][1]['output_protocol']['report_schema']['properties'])
         self.assertIn('numeric_reading_view', calls[0][1]['context'])
 
-    def test_invalid_chart_records_actual_path_and_candidate_without_another_call(self):
+    def test_invalid_chart_records_actual_path_and_candidate(self):
         agent, evidence = self.agent_and_evidence()
-        chart = {'type': 'line', 'title': '不支持的图', 'source_result_id': 'task:R1',
+        chart = {'type': 'unsupported', 'title': '不支持的图', 'source_result_id': 'task:R1',
                  'category_field': 'month', 'value_field': 'value'}
         result = agent.draft_investigation('为什么变化', {'evidence': evidence}, {},
             call_model=lambda *_: {'draft': '变化[task:R1]', 'visualizations': [chart]})
         self.assertEqual(result.report.visualizations, [])
         self.assertEqual(result.diagnostics[0]['errors'][0]['loc'], ('type',))
         self.assertEqual(result.diagnostics[0]['errors'][0]['type'], 'literal_error')
-        self.assertIn('line', result.diagnostics[0]['candidate_json'])
+        self.assertIn('unsupported', result.diagnostics[0]['candidate_json'])
         self.assertIn('type', result.warnings[0])
 
     def test_explicit_wrong_or_blank_version_is_not_overwritten(self):
@@ -89,8 +89,8 @@ class BusinessReportingV3Test(unittest.TestCase):
         self.assertIn('首次＋2次修复', BUSINESS_REACT_SYSTEM)
         self.assertIn('question_assessments', REVIEW_SYSTEM)
         self.assertIn('explanation_coverage_ack', REVIEW_SYSTEM)
-        self.assertIn('blocked', REVIEW_SYSTEM)
-        self.assertIn('不要求唯一根因', BUSINESS_REACT_SYSTEM + REVIEW_SYSTEM)
+        self.assertIn('partial', REVIEW_SYSTEM)
+        self.assertIn('未决问题正常保留，不能阻止准确阶段报告', REVIEW_SYSTEM)
 
 
 if __name__ == '__main__':

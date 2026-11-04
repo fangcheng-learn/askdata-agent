@@ -49,3 +49,8 @@ references/askdata_studio/backend/data/*
 /output/
 /docs/run_reports/
 /docs/askdata_audit_evidence/
+
+# Local-only interview notes and accidental credential exports
+/docs/homenova_project_overview_and_harness_design.md
+/docs/homenova_storyline_manual.md
+*WARNING_BANNER*

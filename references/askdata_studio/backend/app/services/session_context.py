@@ -274,6 +274,7 @@ class SessionContext:
         return json.dumps({
             "task_id": result.task_id,
             "user_id": self.tasks.get(result.task_id, {}).get('user_id'),
+            "query": self.tasks.get(result.task_id, {}).get('query', ''),
             "status": result.status, "workflow_mode": result.workflow_mode,
             "final_reviewed": result.final_reviewed, "stop_reason": result.stop_reason,
             "requirements": result.requirements,

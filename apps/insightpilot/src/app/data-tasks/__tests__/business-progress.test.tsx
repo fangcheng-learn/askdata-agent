@@ -5,7 +5,8 @@ import {createElement,act} from 'react';
 import {createRoot} from 'react-dom/client';
 import {createInitialLiveRun,reduceLiveRunEvent} from '../live-run-state';
 import {hydrateLiveRunFromConversation} from '../conversation-restore';
-import {BusinessProgress,RunningBusinessProgress,LiveQueryTables,businessEntriesForTurn} from '../components/BusinessProgress';
+import {BusinessProgress,RunningBusinessProgress,LiveQueryTables,businessEntriesForTurn,groupBusinessRounds,businessStageStatus,effectiveBusinessNoteStatus} from '../components/BusinessProgress';
+import type {BusinessProgressEntry} from '../live-run-state';
 import type {SessionConversationDto} from '../../../../lib/config-api/types';
 const note={id:'t-F1',kind:'finding',title:'已核实的发现',body:'七月GMV下降21%',status:'supported',evidenceIds:['t:R1']};
 it('replaces the live cursor before any answer and retires when delivery finishes',()=>{
@@ -19,6 +20,27 @@ it('replaces the live cursor before any answer and retires when delivery finishe
   expect(html()).toBe('');
 });
 const table={id:'query-ref1',title:'月度GMV',type:'table',summary:'待核对 · 共 1 行',preview_json:{columns:['gmv'],rows:[{gmv:10}]}};
+it('keeps failed retries in one business stage and resolves only with actual success',()=>{
+ const entry=(round:number,kind:string,status:string,id:string,body='核实同一渠道两期客单价'):BusinessProgressEntry=>({id,runId:'r',round,kind,status,body,title:'查证',evidenceIds:[]});
+ const entries=[entry(7,'action','needs_method_decision','t-action-A5-round-7'),entry(7,'issue','open','t-issue-A5-round-7','缺少期间'),
+  entry(8,'plan','planned','t-plan-8'),entry(8,'action','needs_method_decision','t-action-A6-round-8'),
+  entry(8,'issue','open','t-issue-A6-round-8','缺少期间'),entry(9,'plan','planned','t-plan-9'),entry(10,'plan','planned','t-plan-10')];
+ let stages=groupBusinessRounds(entries);
+ expect(stages).toHaveLength(1);expect(stages[0].roundNumbers).toEqual([7,8,9,10]);
+ expect(businessStageStatus(stages[0].notes,true)).toBe('正在处理');
+ expect(businessStageStatus(stages[0].notes,false)).toBe('未解决');
+ entries.push(entry(10,'action','completed','t-action-A7-round-10'));
+ stages=groupBusinessRounds(entries);
+ expect(stages).toHaveLength(1);expect(businessStageStatus(stages[0].notes,false)).toBe('处理完成');
+ expect(effectiveBusinessNoteStatus(entries[1],stages[0].notes)).toBe('resolved');
+ expect(entries[1].status).toBe('open'); // historical event remains unchanged
+ entries.push(entry(10,'issue','open','t-question-Q1-round-10','另一个尚未核实的业务问题'));
+ expect(businessStageStatus(groupBusinessRounds(entries)[0].notes,false)).toBe('未解决');
+});
+it('does not merge different goals, completed investigations or other runs',()=>{
+ const make=(round:number,body:string,status:string,runId='r'):BusinessProgressEntry=>({id:`${runId}-${round}`,round,body,status,runId,kind:'action',title:'查证',evidenceIds:[]});
+ expect(groupBusinessRounds([make(1,'六月范围','failed'),make(2,'七月范围','completed'),make(3,'七月范围','running'),make(1,'六月范围','running','other')])).toHaveLength(4);
+});
 describe('business progress and live result tables',()=>{
  it('shows a table while analysis is still running and updates validation without duplicates',()=>{
    let run=reduceLiveRunEvent(createInitialLiveRun(),{type:'RUN_STARTED',runId:'run'});
@@ -37,9 +59,9 @@ describe('business progress and live result tables',()=>{
    expect(businessEntriesForTurn(run,'run-user',false)).toHaveLength(1);
    expect(businessEntriesForTurn(run,'old-user',false)).toHaveLength(0);
    const html=renderToStaticMarkup(createElement(BusinessProgress,{liveRun:run,current:true}));
-   expect(html).not.toContain('七月GMV下降21%');expect(html).toContain('查看过程');expect(html).not.toContain('query_homenova');
+   expect(html).toContain('七月GMV下降21%');expect(html).toContain('收起过程');expect(html).not.toContain('query_homenova');
  });
- it('keeps one collapsed status, expands stages on demand, and respects streaming updates',async()=>{
+ it('opens the process by default and preserves user choices through streaming and completion',async()=>{
    Object.assign(globalThis,{IS_REACT_ACT_ENVIRONMENT:true});
    let run=reduceLiveRunEvent(createInitialLiveRun(),{type:'RUN_STARTED',runId:'run'});
    run=reduceLiveRunEvent(run,{type:'CUSTOM',name:'insightpilot.analysis',value:{...note,round:1}});
@@ -48,8 +70,6 @@ describe('business progress and live result tables',()=>{
    const render=()=>act(async()=>root.render(createElement(BusinessProgress,{liveRun:run,current:true})));
    await render();
    const buttons=()=>Array.from(host.querySelectorAll('button'));
-   expect(buttons().map(b=>b.getAttribute('aria-expanded'))).toEqual(['false']);
-   await act(async()=>buttons()[0].click());
    expect(buttons().map(b=>b.getAttribute('aria-expanded'))).toEqual(['true','false','false']);
    await act(async()=>buttons()[1].click());
    await act(async()=>buttons()[0].click());
@@ -57,8 +77,13 @@ describe('business progress and live result tables',()=>{
    await render();expect(buttons()).toHaveLength(1);expect(buttons()[0].getAttribute('aria-expanded')).toBe('false');
    await act(async()=>buttons()[0].click());
    expect(buttons().map(b=>b.getAttribute('aria-expanded'))).toEqual(['true','true','false','false']);
+   await act(async()=>buttons()[0].click());
    run={...run,runStatus:'completed'};await render();
    expect(buttons()).toHaveLength(1);expect(buttons()[0].getAttribute('aria-expanded')).toBe('false');
+   await act(async()=>buttons()[0].click());
+   expect(buttons().map(b=>b.getAttribute('aria-expanded'))).toEqual(['true','true','false','false']);
+   run={...run,runId:'other-run',businessProgress:run.businessProgress.map(entry=>({...entry,runId:'other-run'}))};await render();
+   expect(buttons().map(b=>b.getAttribute('aria-expanded'))).toEqual(['true','false','false','false']);
    await act(async()=>root.unmount());host.remove();
  });
  it('restores meaningful notes and tables without starting another run',()=>{

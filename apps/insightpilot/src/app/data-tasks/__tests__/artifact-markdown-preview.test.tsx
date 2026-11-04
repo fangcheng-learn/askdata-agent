@@ -41,15 +41,29 @@ describe("isMarkdownFilePath", () => {
 });
 
 describe("RichMarkdown", () => {
+  it('hides only a chart title identical to its immediately preceding heading',()=>{
+    const encoded=Buffer.from(JSON.stringify({type:'bar',title:'POWER 降幅较大',source:'R1',unit:'EUR',points:[{label:'A',value:10}]})).toString('base64');
+    const render=(before:string)=>renderToStaticMarkup(createElement(RichMarkdown,{content:`${before}\n\n<!-- homenova-chart:${encoded} -->`}));
+    expect(render('### POWER 降幅较大')).not.toContain('>POWER 降幅较大</span>');
+    expect(render('### 2. POWER 降幅较大')).not.toContain('>POWER 降幅较大</span>');
+    expect(render('### 二、POWER 降幅较大')).not.toContain('>POWER 降幅较大</span>');
+    expect(render('### 其他观点')).toContain('>POWER 降幅较大</span>');
+    expect(render('### POWER 降幅较大\n\n另一段说明')).toContain('>POWER 降幅较大</span>');
+    expect(render('### POWER 降幅较大')).toContain('EUR');
+  });
   it("places a source-bound chart between the Agent's narrative sections and converts cents", () => {
     const encoded=Buffer.from(JSON.stringify({type:"bar",title:"两月销售对比",unit:"EUR cents",source:"t%3AR1",
-      points:[{label:"6月",value:12000},{label:"7月",value:9000}]})).toString("base64");
+      points:[{label:"2026-06",value:12000},{label:"2026-07",value:9000}]})).toString("base64");
     const html=renderToStaticMarkup(createElement(RichMarkdown,{content:
       `当前结论\n\n<!-- homenova-chart:${encoded} -->\n\n后续分析`}));
     expect(html.indexOf("当前结论")).toBeLessThan(html.indexOf("两月销售对比"));
     expect(html.indexOf("两月销售对比")).toBeLessThan(html.indexOf("后续分析"));
     expect(html).toContain("EUR");
-    expect(html).toContain(">120</strong>");
+    expect(html).toContain(">120</td>");
+    expect(html).toContain("−25%");
+    expect(html).toContain("变化幅度");
+    expect(html).toContain("查看数值与变化");
+    expect(html).not.toMatch(/<details[^>]*\sopen[ =>]/);
     expect(html).not.toContain("12000");
     expect(html).not.toContain("homenova-chart:");
   });

@@ -97,11 +97,15 @@ def load_analysis_evidence(state: dict[str, Any], engine: Any, *,
             entries.append({**parent, 'id': parent.get('id') or f'{task_id}:R1',
                             'check_status': parent.get('check_status') or 'basic_valid'})
         origins.append({'task_id': task_id, 'status': parent.get('status') or 'completed',
+                        'query': parent.get('query') or '',
                         'final_reviewed': bool(parent.get('final_reviewed')),
                         'stop_reason': parent.get('stop_reason'),
                         'requirements': deepcopy(parent.get('requirements') or [])})
         if parent.get('analysis') or parent.get('report'):
             prior_reports.append({'task_id': task_id, 'status': parent.get('status'),
+                                  **{key: deepcopy((parent.get('report') or {}).get(key))
+                                     for key in ('visualizations', 'continuation_context')
+                                     if isinstance(parent.get('report'), dict) and key in parent['report']},
                                   'markdown': ((parent.get('report') or {}).get('markdown')
                                       if isinstance(parent.get('report'), dict) else None) or parent.get('analysis'),
                                   **({'references': _report_references(parent)} if report_mode else {})})
@@ -184,7 +188,11 @@ def load_analysis_evidence(state: dict[str, Any], engine: Any, *,
         if not ref:
             gaps.append(f'{rid}缺少受控结果引用，仅有历史预览，未当作完整证据')
             continue
-        rows, page, limit = [], None, min(max_rows, remaining)
+        # Raw inputs to stored calculations are provenance, not a second
+        # report-sized table. Keep a truthful preview and leave room for the
+        # calculated results that follow (including normal/zero results).
+        row_limit = min(max_rows, 20) if report_mode and entry.get('result_kind') == 'calculation_source' else max_rows
+        rows, page, limit = [], None, min(row_limit, remaining)
         if limit <= 0:
             gaps.append(f'{rid}超出本轮提供行数，未加载，不能把已显示结果当全集')
             continue

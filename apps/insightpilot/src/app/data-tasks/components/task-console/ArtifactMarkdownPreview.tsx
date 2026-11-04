@@ -2,7 +2,9 @@
 
 import React, { type ComponentPropsWithoutRef, type ReactNode } from "react";
 import { CopilotChatAssistantMessage } from "@copilotkit/react-core/v2";
-import { ReportChart } from "./ReportChart";
+import { ReportChart, decodeReportChart } from "./ReportChart";
+import {highlightMovements} from "./ReportNumbers";
+import {normalizeReportTableUnits} from "./ReportTableUnits";
 
 /**
  * Streamdown (via CopilotKit MarkdownRenderer) ships `cpk:*` utilities that only
@@ -12,6 +14,8 @@ import { ReportChart } from "./ReportChart";
  * Shared by chat final answers and Outputs MD previews so GFM (tables, lists,
  * code, links) renders consistently with design-system tokens.
  */
+// Keep prose rules off chart ancestors. Recharts uses a zero-width measurement
+// wrapper; descendant max-width:100% collapses its chart and legend to zero.
 const markdownBaseClass = [
   "min-w-0 w-full max-w-full break-words text-foreground [overflow-wrap:anywhere]",
   "[&_*]:max-w-full",
@@ -36,7 +40,7 @@ const markdownBaseClass = [
   "[&_td]:border-x-0 [&_td]:border-t-0 [&_td]:border-b [&_td]:border-border/60 [&_td]:px-4 [&_td]:py-3 [&_td]:align-middle [&_td]:text-foreground",
   "[&_tbody_tr:last-child_td]:border-b-0 [&_tbody_tr:hover]:bg-surface-subtle/50",
   "[&_td[data-numeric=true]]:text-right [&_td[data-numeric=true]]:whitespace-nowrap",
-  "[&_td[data-change]]:font-semibold [&_tr[data-comparable=true]_td[data-change=down]]:text-step-error",
+  "[&_td[data-change]]:font-semibold",
   "[&_a]:font-medium [&_a]:text-primary [&_a]:underline [&_a]:decoration-primary/30 [&_a]:underline-offset-2 hover:[&_a]:decoration-primary",
 ].join(" ");
 
@@ -67,11 +71,25 @@ function isSafeHttpUrl(href: string | undefined): boolean {
   }
 }
 
+export type ReportEvidenceRequest = { sourceId: string; title: string; content: string };
+export const REPORT_EVIDENCE_EVENT = "insightpilot:report-evidence";
+const EvidenceContext = React.createContext<Map<string, string>>(new Map());
+
+export function requestReportEvidence(sourceId: string, content: string): boolean {
+  const title = /^### (.+)$/mu.exec(content)?.[1] ?? "数据明细与计算口径";
+  const event = new CustomEvent<ReportEvidenceRequest>(REPORT_EVIDENCE_EVENT, {
+    cancelable: true, detail: { sourceId, title, content },
+  });
+  window.dispatchEvent(event);
+  return event.defaultPrevented;
+}
+
 function SecureMarkdownLink({
   href,
   children,
   ...props
 }: ComponentPropsWithoutRef<"a"> & { node?: unknown }) {
+  const sources = React.useContext(EvidenceContext);
   const { node: _node, ...rest } = props;
   const external = isSafeHttpUrl(href) && !href?.startsWith("#");
   // Block javascript: / data: etc. — render as inert text instead of a navigable link.
@@ -84,6 +102,12 @@ function SecureMarkdownLink({
       href={href}
       onClick={(event) => {
         if (!href?.startsWith("#report-source-")) return;
+        const sourceId = href.slice("#report-source-".length);
+        const evidence = sources.get(sourceId);
+        if (evidence && requestReportEvidence(sourceId, evidence)) {
+          event.preventDefault();
+          return;
+        }
         const root = event.currentTarget.closest("[data-report-document]");
         const target = Array.from(root?.querySelectorAll<HTMLElement>("[data-report-source]") ?? [])
           .find((element) => element.dataset.reportSource === href.slice("#report-source-".length));
@@ -106,23 +130,43 @@ function plainText(value: ReactNode): string {
     ? plainText(child.props.children) : typeof child === "string" || typeof child === "number" ? String(child) : "").join("");
 }
 
-function ReportTableCell({children,node:_node,...props}: ComponentPropsWithoutRef<"td"> & {node?:unknown}) {
+const ChangeColumns = React.createContext<number[]>([]);
+const TableRows = React.createContext<Map<TableNode,string[]>>(new Map());
+type TableNode = {tagName?:string;value?:string;children?:TableNode[]};
+function nodeText(node:TableNode):string {return node.value??node.children?.map(nodeText).join('')??'';}
+function ReportTableCell({children,node:_node,isChangeColumn=false,...props}: ComponentPropsWithoutRef<"td"> & {node?:unknown;isChangeColumn?:boolean}) {
   const value=plainText(children).trim();
-  const numeric=/^[↑↓+−\-]?[€$£]?[\d,.]+(?:%|\s*个百分点)?$/u.test(value);
-  const change=numeric && /^[↓−-]/u.test(value) ? "down" : numeric && /^[↑+]/u.test(value) ? "up" : undefined;
-  return <td {...props} data-numeric={numeric || undefined} data-change={change}>{children}</td>;
+  const numeric=/^[↑↓+−\-]?\s*[€$£]?[\d,.]+(?:%|\s*个百分点)?$/u.test(value);
+  const change=isChangeColumn && numeric && /^[↓−-]/u.test(value) ? "down" : isChangeColumn && numeric && /^[↑+]/u.test(value) ? "up" : undefined;
+  return <td {...props} data-numeric={numeric || undefined} data-change={change}>{highlightMovements(children,isChangeColumn)}</td>;
 }
 
-function ReportTableRow({children,node:_node,...props}: ComponentPropsWithoutRef<"tr"> & {node?:unknown}) {
-  const label=plainText(React.Children.toArray(children)[0]);
-  // A lower average price is not intrinsically bad; only color known performance metrics.
-  const comparable=/^(GMV|支付订单数|支付商品件数|购买会话数|会话购买转化率|品类浏览转化率)/u.test(label);
-  return <tr {...props} data-comparable={comparable || undefined}>{children}</tr>;
+function ReportTableRow({children,node,...props}: ComponentPropsWithoutRef<"tr"> & {node?:TableNode}) {
+  const columns=React.useContext(ChangeColumns);
+  const rows=React.useContext(TableRows);
+  const normalized=node?rows.get(node):undefined;
+  let column=0;
+  return <tr {...props}>{React.Children.map(children,child=>{
+    if(!React.isValidElement<{node?:TableNode;isChangeColumn?:boolean;children?:ReactNode}>(child))return child;
+    const tag=typeof child.type==='string'?child.type:child.props.node?.tagName;
+    if(tag!=='td' && tag!=='th' && child.type!==ReportTableCell) return child;
+    const index=column++;
+    const text=normalized?.[index];
+    return React.cloneElement(child,{
+      ...(tag==='td'||child.type===ReportTableCell?{isChangeColumn:columns.includes(index)}:{}),
+      ...(text!==undefined && text!==plainText(child.props.children)?{children:text}:{}),
+    });
+  })}</tr>;
 }
 
-function ReportTable({children,node:_node,...props}: ComponentPropsWithoutRef<"table"> & {node?:unknown}) {
+function ReportTable({children,node,...props}: ComponentPropsWithoutRef<"table"> & {node?:TableNode}) {
+  const header=node?.children?.find(n=>n.tagName==='thead')?.children?.find(n=>n.tagName==='tr');
+  const columns=(header?.children?.filter(n=>n.tagName==='th')??[]).flatMap((n,i)=> /增减|变化|变动|差额|差值|环比|同比|涨跌|贡献额/u.test(nodeText(n))?[i]:[]);
+  const rows=(node?.children??[]).flatMap(section=>section.children??[]).filter(row=>row.tagName==='tr');
+  const normalized=normalizeReportTableUnits(rows.map(row=>(row.children??[]).filter(cell=>cell.tagName==='th'||cell.tagName==='td').map(nodeText)));
+  const rowValues=new Map(rows.map((row,index)=>[row,normalized[index]]));
   return <div className="my-4 min-w-0 overflow-x-auto" tabIndex={0} role="region" aria-label="数据表">
-    <table {...props} className="w-full border-collapse border-0">{children}</table>
+    <ChangeColumns.Provider value={columns}><TableRows.Provider value={rowValues}><table {...props} className="w-full border-collapse border-0">{children}</table></TableRows.Provider></ChangeColumns.Provider>
   </div>;
 }
 
@@ -131,8 +175,18 @@ function ReportTableBody({node:_node,...props}: ComponentPropsWithoutRef<"tbody"
   return <tbody {...props} className="bg-transparent" />;
 }
 
+function ReportParagraph({children,node:_node,...props}:ComponentPropsWithoutRef<'p'> & {node?:unknown}) {
+  return <p {...props}>{highlightMovements(children)}</p>;
+}
+function ReportListItem({children,node:_node,...props}:ComponentPropsWithoutRef<'li'> & {node?:unknown}) {
+  return <li {...props}>{highlightMovements(children)}</li>;
+}
+function ReportStrong({children,node:_node,...props}:ComponentPropsWithoutRef<'strong'> & {node?:unknown}) {
+  return <strong {...props}>{highlightMovements(children)}</strong>;
+}
+
 const reportAppendixMarker="<!-- homenova-report-appendix:v1 -->";
-const markdownComponents={a:SecureMarkdownLink,td:ReportTableCell,tr:ReportTableRow,table:ReportTable,tbody:ReportTableBody};
+const markdownComponents={a:SecureMarkdownLink,td:ReportTableCell,tr:ReportTableRow,table:ReportTable,tbody:ReportTableBody,p:ReportParagraph,li:ReportListItem,strong:ReportStrong};
 
 type MarkdownRendererProps = {
   content: string;
@@ -143,6 +197,9 @@ type MarkdownRendererProps = {
     tr?: typeof ReportTableRow;
     table?: typeof ReportTable;
     tbody?: typeof ReportTableBody;
+    p?: typeof ReportParagraph;
+    li?: typeof ReportListItem;
+    strong?: typeof ReportStrong;
   };
 };
 
@@ -154,6 +211,10 @@ const MarkdownRenderer = CopilotChatAssistantMessage.MarkdownRenderer as (
  * Unified markdown surface for assistant final answers and artifact MD previews.
  * Uses Streamdown (GFM, code highlighting, sanitization) via CopilotKit.
  */
+function unnumberedHeading(value?:string) {
+  return value?.trim().replace(/^(?:[一二三四五六七八九十]+[、．.]|\d+[、．.])\s*/u,'');
+}
+
 export function RichMarkdown({
   content,
   density = "artifact",
@@ -167,25 +228,27 @@ export function RichMarkdown({
   const body=marker<0 ? content : content.slice(0,marker);
   const appendix=marker<0 ? "" : content.slice(marker+reportAppendixMarker.length);
   const parts=appendix.split(/<!-- homenova-source:([^\s]+) -->/u);
+  const sources = new Map(Array.from({length: Math.floor(parts.length / 2)}, (_, i) => [parts[i*2+1]!, parts[i*2+2]!]));
   const blocks=body.split(/<!-- homenova-chart:([A-Za-z0-9+/=]+) -->/u);
   return (
-    <div
+    <EvidenceContext.Provider value={sources}><div
       data-copilotkit
       data-report-document
-      className={[markdownBaseClass, densityClass[density], className].filter(Boolean).join(" ")}
+      className={["min-w-0 w-full max-w-full text-foreground", densityClass[density], className].filter(Boolean).join(" ")}
     >
       <div className="min-w-0 max-w-full overflow-x-auto">
-        {blocks.map((block,index)=>index%2 ? <ReportChart key={index} encoded={block} />
-          : <MarkdownRenderer key={index} content={block} className={streamdownProseClass} components={markdownComponents} />)}
+        {blocks.map((block,index)=>index%2 ? <ReportChart key={index} encoded={block}
+          hideTitle={Boolean(unnumberedHeading(decodeReportChart(block)?.title)) && unnumberedHeading(/(?:^|\n)#{1,6}\s+([^\n]+)\s*$/u.exec(blocks[index-1]?.trim() ?? '')?.[1])===unnumberedHeading(decodeReportChart(block)?.title)} />
+          : <div key={index} data-report-prose className={markdownBaseClass}><MarkdownRenderer content={block} className={streamdownProseClass} components={markdownComponents} /></div>)}
       </div>
       {appendix && <details className="mt-8 border-t border-border pt-4">
-        <summary className="cursor-pointer text-sm font-medium text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">查看数据明细与计算口径</summary>
-        {parts[0].trim() && <MarkdownRenderer content={parts[0]} className={streamdownProseClass} components={markdownComponents} />}
-        {Array.from({length:Math.floor(parts.length/2)},(_,i)=><section key={parts[i*2+1]} data-report-source={parts[i*2+1]} tabIndex={-1} className="mt-6 min-w-0 overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+        <summary onClick={event => { if (requestReportEvidence("all", Array.from(sources.values()).join("\n\n"))) event.preventDefault(); }} className="cursor-pointer text-sm font-medium text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">查看数据明细与计算口径</summary>
+        {parts[0].trim() && <div data-report-prose className={markdownBaseClass}><MarkdownRenderer content={parts[0]} className={streamdownProseClass} components={markdownComponents} /></div>}
+        {Array.from({length:Math.floor(parts.length/2)},(_,i)=><section key={parts[i*2+1]} data-report-source={parts[i*2+1]} tabIndex={-1} className={`${markdownBaseClass} mt-6 min-w-0 overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40`}>
           <MarkdownRenderer content={parts[i*2+2]} className={streamdownProseClass} components={markdownComponents} />
         </section>)}
       </details>}
-    </div>
+    </div></EvidenceContext.Provider>
   );
 }
 

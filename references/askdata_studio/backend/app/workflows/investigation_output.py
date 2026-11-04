@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, create_model
 from ..models import Clarification, VisualizationSpec
 from ..querying.analysis_output import ReviewFinding, TextEdit
 from ..querying.calculations import (SumRequest, ColumnStatsRequest, ChangeRequest,
-    RatioRequest, PeriodChangeRequest, ProductDecompositionRequest, StateDurationRequest)
+    RatioRequest, AlignResultsRequest, PeriodChangeRequest, ProductDecompositionRequest, StateDurationRequest)
 from .progress_protocol import ProgressUpdate
 
 
@@ -95,7 +95,7 @@ class Deliver(_Output):
 _calculations = [create_model(model.__name__ + 'Action', __base__=model,
     type=(Literal['calculate'], ...), goal=(str, ''), repair_action_id=(str | None, None))
     for model in (SumRequest, ColumnStatsRequest, ChangeRequest, RatioRequest,
-                  PeriodChangeRequest, ProductDecompositionRequest, StateDurationRequest)]
+                  AlignResultsRequest, PeriodChangeRequest, ProductDecompositionRequest, StateDurationRequest)]
 _Action = LoadSkill | QueryBatch | RepairQuery | ResolveTime | ReadResult | Clarify | Deliver
 for _calculation in _calculations:
     _Action = _Action | _calculation
@@ -152,12 +152,31 @@ class DeliveryReview(_Output):
     visualizations_approved: bool = False
 
 
+class ReportPoint(_Output):
+    title: str = Field(description='一个具体分析观点；使用结论式标题，不写泛泛的数据图表或查询结果')
+    evidence_ids: list[str] = Field(description='支撑该观点及呈现数据的真实结果ID；正常判断也必须有实际检查依据')
+    presentation: Literal['table', 'chart', 'text', 'both'] = Field(description='默认表或图二选一；both仅当分别回答不同问题')
+    table_markdown: str = Field(default='', description='选择table时填写完整Markdown表，优先对象、前期、后期、变化幅度；比率默认不另列百分点差，金额/数量按需补增减量。单位写表头或指标名括号，用已有可读数值及计算结果，不心算贡献')
+    visualization: VisualizationSpec | None = None
+    dual_presentation_reason: str = Field(default='', description='仅both时说明表和图分别帮助理解什么，不能只是重复同一组数字')
+    analysis: str = Field(description='先说明当前对象与上节对象的关系，再解释关键对比、可能原因和具体待核实事实；两三句，不逐行念表或反复免责声明')
+
+
+class ReportActionItem(_Output):
+    priority: str = Field(description='高、中或低；展示层分别使用红、橙、蓝图标')
+    action: str = Field(description='有充分依据时提出行动；证据不足时提出具体验证步骤')
+    basis: str = Field(description='对应报告中的哪项发现，不泛化为通用建议')
+    expected_check: str = Field(description='执行后需要验证的结果或决策条件，不能承诺未经验证的收益')
+    evidence_ids: list[str]
+
+
 class InvestigationReport(_Output):
     action: Literal['report'] = 'report'
     answer: str = Field(default='', description='给运营人员的当前核心结论，简短说明业务含义，不列执行状态')
     title: str = Field(description='本次业务主题，不以证据摘要或未完成标签代替标题')
-    markdown: str = Field(description='整合后的运营报告：结论优先，分析解释并配合图表，提出有依据的行动优先级，未完成事项放篇末；不按查询顺序堆表')
-    visualizations: list[VisualizationSpec] = Field(default_factory=list, description='由报告Agent选择的图表，绑定真实来源和字段；不由模型提供图表数据')
+    overview: str = Field(description='综述先说总体结果和可能原因，再简述实际调查路径、异常与正常观察及待确认问题；少量关键数字，未检查不能写正常')
+    analysis_points: list[ReportPoint] = Field(description='先组织观点、证据及呈现，再写解释；通常3至4个观点，按证据多少调整，不凑数、不固定业务指标。每项单独成节')
+    action_items: list[ReportActionItem] = Field(description='与已写发现对应的行动或验证项，显示为带优先级颜色图标的分点建议')
     evidence_gaps: list[str] = Field(default_factory=list, description='需要后续调查或用户确认的核心缺口；内部审核字段，不代替报告正文')
 
 
@@ -174,13 +193,22 @@ class ReportRevision(_Output):
     evidence_gaps: list[str] | None = Field(default=None, description='必要未决项需要变化时填写，否则null保留')
 
 
+class ChartRepairItem(_Output):
+    chart_index: int = Field(ge=1)
+    visualization: VisualizationSpec | None = Field(description='仅修复对应失败图表；确实无适用数据时为null')
+
+
+class ReportChartRepair(_Output):
+    repairs: list[ChartRepairItem]
+
+
 def output_schema(node: str, *, skill_names: list[str] | None = None, result_columns: dict[str, list[str]] | None = None, query_ids: list[str] | None = None, review_context_refs: list[str] | None = None) -> dict | None:
     model = {'react': InvestigationDecision, 'delivery_review': DeliveryReview,
-             'draft': InvestigationReport, 'report_revision': ReportRevision}.get(node)
+             'draft': InvestigationReport, 'report_revision': ReportRevision, 'chart_repair': ReportChartRepair}.get(node)
     if model is None:
         return None
     schema = model.model_json_schema()
-    if node in {'draft', 'report_revision'}:
+    if node in {'draft', 'report_revision', 'chart_repair'}:
         chart = schema['$defs']['VisualizationSpec']
         chart.setdefault('required', []).append('source_result_id')
         chart['properties']['source_result_id'] = {'type': 'string', 'minLength': 1}

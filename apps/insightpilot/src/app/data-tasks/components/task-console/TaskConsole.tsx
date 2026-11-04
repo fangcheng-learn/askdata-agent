@@ -62,6 +62,7 @@ import {
 import { RunConfigurationPanel } from "./RunConfigurationPanel";
 import { TraceList } from "./TraceList";
 import { EmbeddedTraceDag } from "./TraceOverlay";
+import { ReportChart } from "./ReportChart";
 import { ArtifactMarkdownPreview } from "./ArtifactMarkdownPreview";
 import { ActionMenu, type ActionMenuItem } from "./ActionMenu";
 import { IconDots, IconOpen } from "./console-icons";
@@ -2275,7 +2276,7 @@ function ArtifactDetailView({
   }
 
   if (detail.type === "chart") {
-    return <ChartDetailView detail={detail} />;
+    return detail.reportChart ? <ReportChart encoded={detail.reportChart} /> : <ChartDetailView detail={detail} />;
   }
 
   if (detail.type === "file") {

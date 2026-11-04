@@ -510,15 +510,15 @@
     "useThisPrompt": "Use this prompt",
     "footerBeforeAt": "Ask directly in the input below, or use",
     "footerAfterAt": "to select a datasource.",
-    "inspectSchema": "Inspect Schema",
+    "inspectSchema": "Simple Q&A",
     "inspectSchemaDesc": "List tables and fields for the active datasource",
     "inspectSchemaPrompt": "Show the tables in the datasource and summarize the main fields for each table",
-    "runSql": "Run SQL Query",
-    "runSqlDesc": "Generate and run read-only SQL from natural language",
-    "runSqlPrompt": "Query total orders in the last 30 days, grouped by date",
-    "analyzeTrends": "Analyze Trends",
-    "analyzeTrendsDesc": "Explore metric changes and anomalies",
-    "analyzeTrendsPrompt": "Analyze monthly sales trends and identify the months with the largest swings"
+    "runSql": "Business analysis · GMV decline",
+    "runSqlDesc": "Compare periods, channels and products to investigate changes",
+    "runSqlPrompt": "Why did GMV fall so much in July compared with June?",
+    "analyzeTrends": "Simple data query",
+    "analyzeTrendsDesc": "Look up metrics for a specific period",
+    "analyzeTrendsPrompt": "Show GMV, paid orders and paid item quantity for July 2026"
   },
   "schema": {
     "copyTableName": "Copy table name",

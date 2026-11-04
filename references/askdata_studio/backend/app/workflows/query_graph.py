@@ -434,7 +434,7 @@ class QueryWorkflow:
                 for item in bundle['evidence']]
             if qa_result.evidence_gaps:
                 result.status = 'partial'
-                result.message = '已整理已有证据；原调查仍有未解决缺口'
+                result.message = '已整理已有证据；本次回答仍有待确认事项'
                 result.stop_reason = '；'.join(qa_result.evidence_gaps)
         skip_content_review = bool(qa_result.report) and not getattr(getattr(self, 'config', None), 'report_content_review_enabled', True)
         if skip_content_review:

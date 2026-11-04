@@ -287,7 +287,7 @@ import {
   CollaborationResponsesProvider,
   useThreadCollaborationResponsesForChat,
 } from "./components/chat/collaboration-responses";
-import { RichMarkdown } from "./components/task-console/ArtifactMarkdownPreview";
+import { RichMarkdown, REPORT_EVIDENCE_EVENT, type ReportEvidenceRequest } from "./components/task-console/ArtifactMarkdownPreview";
 import {
   findPendingCollaborationToolCall,
   messageHostsPendingCollaborationSlot,
@@ -1072,6 +1072,7 @@ function DataTaskWorkspace({
   const [query, setQuery] = useState("");
   const [selection, setSelection] = useState<TaskSelection>(null);
   const [toolGroups, setToolGroups] = useState<ProcessToolGroup[]>([]);
+  const [reportEvidenceArtifact, setReportEvidenceArtifact] = useState<DataArtifact | null>(null);
   const [artifactFocusId, setArtifactFocusId] = useState<string | null>(null);
   const [isTraceOpen, setIsTraceOpen] = useState(false);
   const [isConsoleDrawerOpen, setIsConsoleDrawerOpen] = useState(false);
@@ -1242,6 +1243,24 @@ function DataTaskWorkspace({
     }
     setIsConsoleDrawerOpen(true);
   }, [activeSessionId, canDockRightPanel]);
+
+  useEffect(() => { setReportEvidenceArtifact(null); }, [activeSessionId]);
+
+  useEffect(() => {
+    const onEvidence = (event: Event) => {
+      const detail = (event as CustomEvent<ReportEvidenceRequest>).detail;
+      if (!detail || typeof detail.sourceId !== "string" || typeof detail.content !== "string" || typeof detail.title !== "string") return;
+      const id = `report-evidence:${activeSessionId}:${detail.sourceId}`;
+      setReportEvidenceArtifact({ id, title: detail.title, kind: "memo", type: "report",
+        summary: "报告引用的查询结果与原始口径", previewAvailable: true,
+        detail: { type: "file", path: "report-evidence.md", content: detail.content } });
+      setArtifactFocusId(id);
+      openTaskConsole();
+      event.preventDefault();
+    };
+    window.addEventListener(REPORT_EVIDENCE_EVENT, onEvidence);
+    return () => window.removeEventListener(REPORT_EVIDENCE_EVENT, onEvidence);
+  }, [activeSessionId, openTaskConsole]);
 
   const toggleSidebar = useCallback(() => {
     if (sidebarCollapsed) {
@@ -1857,7 +1876,7 @@ function DataTaskWorkspace({
     [activeSession, activeDatasourceId, activeLlmId, liveRun, selection, workspaceConfig],
   );
 
-  const visibleArtifacts = liveRun.artifacts;
+  const visibleArtifacts = reportEvidenceArtifact ? [...liveRun.artifacts, reportEvidenceArtifact] : liveRun.artifacts;
   const visibleTimelineEvents = liveRun.events;
 
   const runConfigPayload = useMemo(

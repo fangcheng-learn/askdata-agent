@@ -6,7 +6,7 @@ or calls a model. Historical restoration uses the same projection as live delive
 import json
 import math
 from datetime import datetime, timezone
-from .report_presentation import present_report
+from .report_presentation import present_report, chart_payload, encode_chart
 
 def now():
     return datetime.now(timezone.utc).isoformat()
@@ -49,17 +49,26 @@ def artifacts(record):
     report=r.get('report') or {}
     for i,spec in enumerate(report.get('visualizations') or []):
         source=next((d for d in report.get('data_sources',[]) if d.get('result_id')==spec.get('source_result_id')),None)
-        if not source and spec.get('source_task_id')==record['task_id']:
-            source={'rows':r.get('rows',[])}
-        if not source:continue
-        points=[]
-        for row in source.get('rows',[]):
-            number=row.get(spec['value_field']);label=row.get(spec['category_field'])
-            if isinstance(number,(int,float)) and not isinstance(number,bool) and math.isfinite(number) and label is not None:
-                points.append({'label':str(label),'value':number})
-        if spec.get('order')=='value_desc':points.sort(key=lambda p:p['value'],reverse=True)
-        elif spec.get('order')=='category_asc':points.sort(key=lambda p:p['label'])
-        if points:add('chart-'+str(i),spec['title'],'chart',{'chartType':spec['type'],'points':points[:spec.get('max_items',12)],'unit':spec.get('unit')})
+        if not spec.get('source_result_id'):
+            # Legacy AskData reports bind task results, not investigation result IDs.
+            source=next((d for d in report.get('data_sources',[]) if d.get('task_id')==spec.get('source_task_id')),None)
+            if not source and spec.get('source_task_id')==record['task_id']:
+                source={'rows':r.get('rows',[])}
+            if source:
+                points=[]
+                for row in source.get('rows',[]):
+                    number,label=row.get(spec['value_field']),row.get(spec['category_field'])
+                    if isinstance(number,(int,float)) and not isinstance(number,bool) and math.isfinite(number) and label is not None:
+                        points.append({'label':str(label),'value':number})
+                if spec.get('order')=='value_desc':points.sort(key=lambda p:p['value'],reverse=True)
+                elif spec.get('order')=='category_asc':points.sort(key=lambda p:p['label'])
+                if points:add('chart-'+str(i),spec['title'],'chart',{'chartType':spec['type'],'points':points[:spec.get('max_items',12)],'unit':spec.get('unit')})
+            continue
+        payload=chart_payload(spec,source) if source else None
+        if payload:
+            # The same renderer keeps axes, grouping and unit conversion consistent.
+            add('chart-'+str(i),spec['title'],'chart',{'chartType':spec['type'],
+                'points':payload['points'],'reportChart':encode_chart(payload),'unit':payload['unit']})
     # Query previews are session outputs, never automatically promoted to workspace files.
     for e in [*record.get('execution_events',[]),*record.get('business_updates',[])]:
         if e.get('type')=='CUSTOM' and e.get('name')=='artifact':

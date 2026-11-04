@@ -47,14 +47,14 @@ export function DataTaskWelcomeScreen({
   const t = useT();
   const examplePrompts = [
     {
-      title: t("welcome.inspectSchema"),
-      description: t("welcome.inspectSchemaDesc"),
-      prompt: t("welcome.inspectSchemaPrompt"),
-    },
-    {
       title: t("welcome.runSql"),
       description: t("welcome.runSqlDesc"),
       prompt: t("welcome.runSqlPrompt"),
+    },
+    {
+      title: t("welcome.inspectSchema"),
+      description: t("welcome.inspectSchemaDesc"),
+      prompt: t("welcome.inspectSchemaPrompt"),
     },
     {
       title: t("welcome.analyzeTrends"),

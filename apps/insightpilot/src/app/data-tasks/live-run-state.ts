@@ -1480,6 +1480,7 @@ function parseChartPreview(preview: unknown): Extract<ArtifactDetail, { type: "c
   return {
     type: "chart",
     ...(chartType ? { chartType } : {}),
+    ...(stringValue(record.reportChart) ? { reportChart: stringValue(record.reportChart) } : {}),
     ...(stringValue(record.unit) ? { unit: stringValue(record.unit) } : {}),
     points,
     ...(series.length > 0 ? { series } : {}),

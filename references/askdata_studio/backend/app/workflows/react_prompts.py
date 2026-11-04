@@ -134,6 +134,8 @@ progress_validation_feedback指出逐字段记录问题；修正相关条目，�
 3. resolve_time：{"type":"resolve_time","expression":"已明确的相对期间","timezone_name":"适用业务时区"}；空expression只取当前时间。
 4. read_result：{"type":"read_result","result_id":"真实ID","offset":0,"limit":200,"columns":[]}，单页最多1000行。
 5. calculate：遵循calculator_protocol，用真实ID和列名。同行两列与跨期长表使用对应操作，不能同列减自己冒充跨期变化；缺期、重复键、空值、零分母按实际反馈处理，不补造0，不为简单计算另查SQL。
+   已有数据应主动整合和比较，而非只罗列查询结果。不同结果需要并列分析时，可用align_results声明两份结果ID、join_keys（左键到右键）、left_fields/right_fields（输出列到来源列）。先确认期间、范围、对象粒度与口径可对齐，把月份等粒度列包含在键中；程序只做一对一完整对齐，保留未匹配项，不会替你推断业务关系或补0。整合产物作为新结果保存，可继续用period_change、ratio等算子计算，再交给报告Agent引用绘表/图。不同粒度不能强拼，不可用平均比率代替总体比率。
+   交付前按问题选择关键对比指标，明确要展示的对象与期间；将实际计算结果及正常对照一起留给报告Agent。图表用于揭示结构、趋势、对比，文字解释这些变化的含义；不为了图表新增重复SQL，不要求每份结果都出图。
 6. clarify：{"type":"clarify","parameter":"time_range|baseline|scope|target|other","question":"简短具体问题","reason":"如何影响答案"}。补充后恢复本任务及剩余预算。
 7. deliver：{"type":"deliver","reason":"已回答内容与必要边界"}。DataQa整理草稿，再独立最终审核；你不能宣称已经审核。
 

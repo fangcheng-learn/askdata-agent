@@ -22,18 +22,52 @@ export function RunningBusinessProgress({liveRun}: {liveRun:LiveRun | null}) {
 }
 
 export function groupBusinessRounds(entries:BusinessProgressEntry[]) {
-  const rounds=new Map<number,BusinessProgressEntry[]>();
+  const rounds=new Map<string,BusinessProgressEntry[]>();
   for(const entry of entries) {
     const number=Number.isFinite(entry.round) && entry.round>0?entry.round:1;
-    const group=rounds.get(number) ?? [];
-    group.push(entry);rounds.set(number,group);
+    const key=`${entry.runId}:${number}`;
+    const group=rounds.get(key) ?? [];
+    group.push({...entry,round:number});rounds.set(key,group);
   }
-  return [...rounds].sort(([a],[b])=>a-b).map(([number,notes])=>({number,notes:notes.filter(n=>n.kind!=='plan' || !notes.some(a=>a.kind==='action' && a.body===n.body))}));
+  const stages:{number:number;key:string;runId:string;roundNumbers:number[];notes:BusinessProgressEntry[]}[]=[];
+  for(const [key,notes] of rounds) {
+    const headline=notes.find(n=>n.kind==='plan') ?? notes.find(n=>n.kind==='action');
+    // A retry of the exact same unfinished goal is a continuation, not a new
+    // business stage. Keep raw entries and round numbers for the audit trail.
+    const prior=headline && [...stages].reverse().find(stage=>stage.runId===headline.runId &&
+      stage.notes.some(n=>(n.kind==='plan' || n.kind==='action') && n.body===headline.body) &&
+      businessStageStatus(stage.notes,false)!=='处理完成');
+    if(prior){prior.notes.push(...notes);prior.roundNumbers.push(notes[0].round);}
+    else stages.push({number:notes[0].round,key,runId:notes[0].runId,roundNumbers:[notes[0].round],notes:[...notes]});
+  }
+  return stages.map(stage=>({...stage,notes:stage.notes.filter((n,i,all)=>n.kind!=='plan' ||
+    (!all.some(a=>a.kind==='action' && a.body===n.body) && all.findIndex(a=>a.kind==='plan' && a.body===n.body)===i))}));
 }
 
-export function BusinessProgress({liveRun, entries, current=false, defaultExpanded=false,onOpenTrace}: {liveRun:LiveRun;entries?:BusinessProgressEntry[];current?:boolean;defaultExpanded?:boolean;onOpenTrace?:()=>void}) {
+export function effectiveBusinessNoteStatus(note:BusinessProgressEntry,notes:BusinessProgressEntry[]) {
+  if(note.kind!=='issue' || note.status==='resolved')return note.status;
+  const match=note.id.match(/-issue-(A\d+)-round-/);
+  if(!match)return note.status; // unresolved business questions and budget stops stay open
+  const action=notes.find(n=>n.kind==='action' && n.id.includes(`-action-${match[1]}-round-`));
+  if(action && notes.some(n=>n.kind==='action' && n.body===action.body && n.status==='completed' && n.round>=action.round))return 'resolved';
+  return note.status;
+}
+
+export function businessStageStatus(notes:BusinessProgressEntry[],active:boolean) {
+  if(active)return '正在处理';
+  const issues=notes.some(n=>n.kind==='issue' && effectiveBusinessNoteStatus(n,notes)!=='resolved');
+  if(issues)return '未解决';
+  const actions=notes.filter(n=>n.kind==='action');
+  const latestByGoal=new Map(actions.map(n=>[n.body,n.status]));
+  if([...latestByGoal.values()].some(s=>['failed','blocked','needs_method_decision','awaiting_calculation','no_progress'].includes(s)))return '未解决';
+  if(actions.length && [...latestByGoal.values()].every(s=>s==='completed'))return '处理完成';
+  if(actions.length || notes.some(n=>n.kind==='plan'))return '未完成';
+  return '阶段记录';
+}
+
+export function BusinessProgress({liveRun, entries, current=false, defaultExpanded=true,onOpenTrace}: {liveRun:LiveRun;entries?:BusinessProgressEntry[];current?:boolean;defaultExpanded?:boolean;onOpenTrace?:()=>void}) {
   const [expanded,setExpanded]=useState<boolean>();
-  const [roundExpansion,setRoundExpansion]=useState<Record<number,boolean>>({});
+  const [roundExpansion,setRoundExpansion]=useState<Record<string,boolean>>({});
   const all=entries ?? (liveRun.businessProgress ?? []).filter(e=>e.runId===liveRun.runId);
   const running=current && liveRun.runStatus==='running';
   const rounds=groupBusinessRounds(all);
@@ -45,7 +79,7 @@ export function BusinessProgress({liveRun, entries, current=false, defaultExpand
     : liveRun.delivery?.runId===liveRun.runId && liveRun.delivery?.status==='partial' ? (liveRun.delivery.hasReport ? '已交付当前分析' : '调查已结束，报告未交付')
     : liveRun.runStatus==='failed' ? '本次运行受阻'
     : liveRun.runStatus==='canceled' ? '已停止' : '工作过程';
-  useEffect(()=>{setExpanded(undefined);setRoundExpansion({});},[liveRun.runId,liveRun.runStatus]);
+  useEffect(()=>{setExpanded(undefined);setRoundExpansion({});},[liveRun.runId]);
   if(!all.length && !running && !(current && getRunDisplayStatus(liveRun)==='suspended'))return null;
   return <section aria-label="分析关键进展" className="min-w-0 text-sm">
     <button type="button" aria-expanded={open} onClick={()=>setExpanded(!open)} className="flex min-h-12 w-full cursor-pointer items-center gap-2 rounded-md px-1 text-left text-xs text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
@@ -56,23 +90,23 @@ export function BusinessProgress({liveRun, entries, current=false, defaultExpand
     </button>
     {open && <div className="max-h-[40dvh] overflow-y-auto overscroll-contain pb-3"><ol className="divide-y divide-border border-t border-border">
       {rounds.map((round,index)=>{
-        const active=running && index===rounds.length-1;
-        const roundOpen=roundExpansion[round.number] ?? false;
+        const active=running && round.roundNumbers.includes(latest?.round ?? -1) && round.runId===latest?.runId;
+        const roundOpen=roundExpansion[round.key] ?? false;
         const headline=round.notes.find(n=>n.kind==='plan') ?? round.notes.find(n=>n.kind==='action') ?? round.notes[0];
         const findings=round.notes.filter(n=>n.kind==='finding' || n.kind==='explanation').length;
         const results=round.notes.filter(n=>n.kind==='result').length;
-        const issues=round.notes.some(n=>n.kind==='issue' && n.status!=='resolved');
-        return <li key={round.number} className="min-w-0 py-1">
-          <button type="button" aria-expanded={roundOpen} onClick={()=>setRoundExpansion(v=>({...v,[round.number]:!roundOpen}))} className="flex w-full min-w-0 cursor-pointer items-start gap-2 py-3 text-left hover:text-muted">
+        const stageStatus=businessStageStatus(round.notes,active);
+        return <li key={round.key} className="min-w-0 py-1">
+          <button type="button" aria-expanded={roundOpen} onClick={()=>setRoundExpansion(v=>({...v,[round.key]:!roundOpen}))} className="flex w-full min-w-0 cursor-pointer items-start gap-2 py-3 text-left hover:text-muted">
             <span aria-hidden="true" className="mt-0.5 text-muted-light">{roundOpen?'⌄':'›'}</span>
-            <span className="min-w-0 flex-1"><span className="flex items-center gap-2 text-xs"><span className="font-medium">阶段 {index+1}</span><span className={issues?'text-step-warning':'text-muted-light'}>{active?'进行中':issues?'有待解决的问题':'阶段记录'}</span></span>
+            <span className="min-w-0 flex-1"><span className="flex items-center gap-2 text-xs"><span className="font-medium">阶段 {index+1}</span><span className={stageStatus==='未解决'?'text-step-warning':'text-muted-light'}>{stageStatus}</span></span>
               <span className="mt-1 block truncate leading-6" title={headline.body}>{headline.body}</span>
-              <span className="mt-1 block text-[11px] text-muted-light">{[results?`${results} 项数据结果`:'',findings?`${findings} 项分析发现`:'',`${round.notes.length} 条进展`].filter(Boolean).join(' · ')}</span>
+              <span className="mt-1 block text-[11px] text-muted-light">{[results?`${results} 项数据结果`:'',findings?`${findings} 项分析发现`:'',round.roundNumbers.length>1?`${round.roundNumbers.length} 轮处理`:'',`${round.notes.length} 条进展`].filter(Boolean).join(' · ')}</span>
             </span>
           </button>
           {roundOpen && <ol className="mb-3 ml-2 grid gap-4 border-l border-border pl-4">
             {round.notes.map(note=><li key={note.id} className="min-w-0"><details>
-              <summary className="cursor-pointer text-xs leading-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"><span className={note.kind==='issue'?'text-step-warning':'text-muted'}>{note.kind==='plan'?'本轮安排':note.title}</span><span className="ml-2 text-muted-light">{!running && ['running','generating','rewriting'].includes(note.status)?'未完成':statuses[note.status] ?? ''}</span></summary>
+              <summary className="cursor-pointer text-xs leading-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"><span className={note.kind==='issue'?'text-step-warning':'text-muted'}>{note.kind==='plan'?'阶段安排':note.title}</span><span className="ml-2 text-muted-light">{effectiveBusinessNoteStatus(note,round.notes)==='resolved' && note.status!=='resolved'?'已处理（后续重试成功）':!running && ['running','generating','rewriting'].includes(note.status)?'未完成':statuses[note.status] ?? ''}</span></summary>
               <p className="mt-2 whitespace-pre-wrap break-words leading-6 text-foreground">{note.body}</p>
               {note.evidenceIds.length>0 && <div className="mt-1 text-[11px] text-muted-light">依据：{note.evidenceIds.map(id=>id.split(':').at(-1)).join('、')}</div>}
             </details></li>)}

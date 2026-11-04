@@ -8,6 +8,86 @@ from app.skills import SkillRegistry
 
 
 class InvestigationReportTest(unittest.TestCase):
+    def test_structured_report_composes_viewpoint_then_visual_then_explanation(self):
+        from app.foundry_adapter.report_presentation import present_report
+        from app.workflows.investigation_output import InvestigationReport
+        response = {'action': 'report', 'title': '两期销售分析', 'overview': '销售下降，原因尚需核实。[R1]',
+            'analysis_points': [
+                {'title': '一、销售金额减少', 'presentation': 'chart', 'visualization': self.chart(),
+                 'analysis': '变化已确认，原因仍需区分。', 'evidence_ids': ['R1']},
+                {'title': '商品表现不同', 'presentation': 'table', 'table_markdown': '| 商品 | 增减 |\n| --- | --- |\n| A | -30 |\n| B | +10 |',
+                 'analysis': 'B部分抵消A的减少。', 'evidence_ids': ['R2']}],
+            'action_items': [{'priority':'高', 'action':'核对A商品变化时段', 'basis':'A减少',
+                             'expected_check':'确认变化是否集中在特定时段', 'evidence_ids':['R2']}]}
+        InvestigationReport.model_validate(response)
+        result, calls = self.draft(response)
+        html = present_report(result.report.model_dump(mode='json'))
+        self.assertEqual(len(calls), 1)
+        self.assertIn('analysis_points', calls[0][1]['output_protocol']['report_schema']['properties'])
+        self.assertLess(html.index('## 分析综述'), html.index('### 1. 销售金额减少'))
+        self.assertLess(html.index('### 1. 销售金额减少'), html.index('<!-- homenova-chart:'))
+        self.assertLess(html.index('<!-- homenova-chart:'), html.index('变化已确认'))
+        self.assertLess(html.index('| A | -30 |'), html.index('B部分抵消'))
+        self.assertLess(html.index('B部分抵消'), html.index('## 行动建议'))
+        self.assertIn('- 🔴 **高优先级：核对A商品变化时段**', html)
+        self.assertIn('A减少。 验证目标：确认变化是否集中在特定时段。', html)
+        self.assertNotIn('| 优先级 |', html)
+        self.assertIn('#report-source-R2', html)
+        self.assertNotIn('## 数据图表', html)
+
+    def test_action_priorities_keep_reader_text_and_citations(self):
+        from app.querying.report_composition import compose_report
+        result = compose_report({'overview': '当前发现', 'analysis_points': [], 'action_items': [
+            {'priority': priority, 'action': '核查' + str(index), 'basis': '现有观察。',
+             'expected_check': '确认变化时段', 'evidence_ids': ['R1', 'R1']}
+            for index, priority in enumerate(['高优先级', '中', 'low', '待安排'])]})
+        markdown = result['markdown']
+        for text in ['🔴 **高优先级：核查0**', '🟠 **中优先级：核查1**',
+                     '🔵 **低优先级：核查2**', '⚪ **待安排：核查3**']:
+            self.assertIn(text, markdown)
+        self.assertEqual(markdown.count('[R1]'), 4)
+        self.assertNotIn('。。', markdown)
+        self.assertIn('验证目标：确认变化时段', markdown)
+
+    def test_both_requires_distinct_presentation_purpose_without_blocking_delivery(self):
+        from app.querying.report_composition import compose_report
+        point = {'title':'金额变化', 'presentation':'both', 'table_markdown':'| 指标 | 数值 |',
+                 'visualization':self.chart(), 'analysis':'说明', 'evidence_ids':['R1']}
+        result = compose_report({'overview':'综述', 'analysis_points':[point], 'action_items':[]})
+        self.assertEqual(result['visualizations'], [])
+        self.assertIn('| 指标 | 数值 |', result['markdown'])
+        point['dual_presentation_reason'] = '表列精确金额，图展示日内波动'
+        result = compose_report({'overview':'综述', 'analysis_points':[point], 'action_items':[]})
+        self.assertEqual(len(result['visualizations']), 1)
+        self.assertEqual(result['visualizations'][0]['section_heading'], '1. 金额变化')
+
+    def test_chart_only_repair_preserves_prose_and_correct_charts(self):
+        calls = []
+        original = {'markdown': '保留正文[R1]', 'visualizations': [self.chart(), self.chart(type='grouped_bar')]}
+        def model(system, payload):
+            calls.append(payload)
+            if payload['mode'] == 'chart_repair':
+                self.assertNotIn('context', payload)
+                self.assertNotIn('markdown', payload)
+                return {'repairs': [{'chart_index': 2, 'visualization': self.chart(type='bar')}]}
+            return original
+        result = self.agent.draft_investigation('对比', {'evidence': self.evidence}, self.scope, call_model=model)
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(result.report.visualizations), 2)
+        self.assertEqual(result.report.markdown, '保留正文[R1]')
+        self.assertFalse(result.warnings)
+        self.assertEqual(result.diagnostics[-1]['stage'], 'chart_repair')
+
+    def test_chart_repair_timeout_never_hides_report(self):
+        from app.runtime_budget import BudgetStop
+        def model(system, payload):
+            if payload['mode'] == 'chart_repair':
+                raise BudgetStop('time exhausted')
+            return {'markdown': '已有结论[R1]', 'visualizations': [self.chart(type='grouped_bar')]}
+        result = self.agent.draft_investigation('对比', {'evidence': self.evidence}, self.scope, call_model=model)
+        self.assertEqual(result.report.markdown, '已有结论[R1]')
+        self.assertEqual(result.diagnostics[-1]['status'], 'unavailable')
+
     def test_report_reads_results_without_inheriting_investigator_claims(self):
         context = {"evidence": self.evidence, "measurement_memory": {"old_summary": "过期数值"},
             "feedback": "上一轮审核的旧解释", "progress": {
@@ -102,7 +182,7 @@ class InvestigationReportTest(unittest.TestCase):
             with self.subTest(overrides=overrides):
                 result, calls = self.draft({"draft": "事实[R1]", "visualizations": [self.chart(**overrides)]})
                 self.assertEqual(result.report.visualizations, [])
-                self.assertEqual(len(calls), 1)
+                self.assertEqual(len(calls), 2)
                 self.assertTrue(result.warnings)
                 untrusted = result.report.model_dump()
                 untrusted["visualizations"] = [self.chart(**overrides)]
@@ -156,7 +236,7 @@ class InvestigationReportTest(unittest.TestCase):
         self.assertEqual(self.agent._citation_aliases(sources), {"A:R1":"A:R1", "B:R1":"B:R1"})
 
     def test_chart_fields_and_units_are_checked_against_actual_evidence(self):
-        for overrides in ({"value_field": "unknown"}, {"currency": "CNY"}, {"unit": "人民币"}):
+        for overrides in ({"value_field": "unknown"}, {"series_field": "unknown"}):
             with self.subTest(overrides=overrides):
                 result, _ = self.draft({"draft": "事实[R1]", "visualizations": [self.chart(**overrides)]})
                 self.assertEqual(result.report.visualizations, [])
@@ -185,11 +265,11 @@ class InvestigationReportTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "截取部分分类"):
             self.agent.validate_investigation_report(untrusted, evidence, self.scope)
 
-    def test_bad_optional_chart_preserves_valid_text_and_other_chart_without_retry(self):
+    def test_bad_optional_chart_preserves_valid_text_after_bounded_repair(self):
         result, calls = self.draft({"draft": "GMV下降。[R1]", "visualizations": [
             self.chart(), {"title": "缺字段"}, self.chart(value_field="missing")],
             "evidence_gaps": ["价格原因尚缺证据"]})
-        self.assertEqual(len(calls), 1)
+        self.assertEqual(len(calls), 2)
         self.assertEqual(len(result.report.visualizations), 1)
         self.assertEqual(len(result.warnings), 2)
         self.assertEqual(result.report.markdown, "GMV下降。[R1]")
@@ -231,6 +311,21 @@ class InvestigationReportTest(unittest.TestCase):
         self.assertEqual(result.action, "report")
         self.assertEqual(len(calls), 1)
         self.assertEqual(result.report.visualizations[0].source_task_id, "old-task")
+
+    def test_units_are_bound_to_source_instead_of_hiding_chart(self):
+        result, _ = self.draft({"draft":"事实[R1]", "visualizations":[self.chart(unit="人民币",currency="CNY")]})
+        spec = result.report.visualizations[0]
+        self.assertEqual((spec.unit,spec.currency),("EUR","EUR"))
+        self.assertEqual(result.report.data_sources[0].rows, self.evidence[0]['rows'])
+
+    def test_all_chart_types_and_invalid_scatter_stay_optional(self):
+        for kind in ('bar','line','area','pie','donut','scatter'):
+            extra = {'x_field':'gmv'} if kind == 'scatter' else {}
+            result,_ = self.draft({'draft':'事实[R1]','visualizations':[self.chart(type=kind,**extra)]})
+            self.assertEqual(result.report.visualizations[0].type,kind)
+        result,_ = self.draft({'draft':'事实[R1]','visualizations':[self.chart(type='scatter',x_field='month')]})
+        self.assertFalse(result.report.visualizations)
+        self.assertTrue(result.report.markdown)
 
 
 if __name__ == "__main__":

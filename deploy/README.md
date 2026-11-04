@@ -128,3 +128,18 @@ upload the developer's existing task history as the deployment database.
   on `b9537cb`: administrator authentication, secure cookies, independent guest
   identity/history, default-password rejection and logout revocation. Both login
   modes were verified on the live page.
+
+## Release update (2026-11-04)
+
+- Synced report composition and feedback-based revision with saved evidence.
+- Added readable comparison tables, relative changes, directional colors, unit
+  labels, source navigation and fixes for chart layout and duplicate headings.
+- Task progress opens by default; repeated recovery work stays in its stage.
+- Updated business diagnosis guidance for flexible first-batch overview queries.
+- Preserved public administrator/guest authentication, ownership isolation, daily
+  visitor limits and the shared CNY 10 daily model budget.
+- Focused backend checks: 140 passed. Frontend checks: 31 passed after updating
+  one stale column-label assertion. Standalone production build passed.
+- Prior real report regeneration improved presentation but still showed old-draft
+  anchoring and occasional prose/table disagreement; this release does not claim
+  those model-quality issues are fully resolved.

@@ -25,6 +25,7 @@ import {
   consoleScrollXShellClass,
   consoleTableShellClass,
 } from "./console-scroll-styles";
+import { ReportChart } from "./ReportChart";
 import { ChartDetailView, FileDetailView } from "./TaskConsole";
 import { ArtifactMarkdownPreview } from "./ArtifactMarkdownPreview";
 import { SelectableDataGrid, SelectableText } from "./evidence-selection";
@@ -317,6 +318,7 @@ function ExpandedArtifactBody({
   }
 
   if (detail.type === "chart") {
+    if (detail.reportChart) return <ReportChart encoded={detail.reportChart} />;
     const grid = chartToGrid(detail);
     return (
       <div className="grid min-w-0 gap-3">

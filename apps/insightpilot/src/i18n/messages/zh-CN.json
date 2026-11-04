@@ -510,15 +510,15 @@
     "useThisPrompt": "使用此提示",
     "footerBeforeAt": "也可直接在下方输入框提问，或用",
     "footerAfterAt": "选择数据源。",
-    "inspectSchema": "查看 Schema",
+    "inspectSchema": "简单问答",
     "inspectSchemaDesc": "列出当前数据源的表与字段",
     "inspectSchemaPrompt": "展示数据源中的表，并总结每张表的主要字段",
-    "runSql": "分析 GMV 下滑",
+    "runSql": "经营分析 · GMV 下滑",
     "runSqlDesc": "拆解月份、渠道和商品的变化贡献",
     "runSqlPrompt": "七月份 GMV 为什么相比六月份下降那么多？",
-    "analyzeTrends": "定位经营异常",
-    "analyzeTrendsDesc": "探索指标变化与异常",
-    "analyzeTrendsPrompt": "最近哪些渠道的销售额下降了，主要原因是什么？"
+    "analyzeTrends": "简单查数",
+    "analyzeTrendsDesc": "查询指定时间的指标和数据",
+    "analyzeTrendsPrompt": "查询2026年7月的GMV、支付订单量和支付商品件数"
   },
   "schema": {
     "copyTableName": "复制表名",

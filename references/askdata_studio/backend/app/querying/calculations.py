@@ -61,6 +61,25 @@ class RatioRequest(_Request):
     denominator: str = Field(min_length=1)
 
 
+class AlignResultsRequest(_Request):
+    operation: Literal['align_results']
+    right_result_id: str = Field(min_length=1)
+    join_keys: dict[str, str] = Field(min_length=1, description='左结果键列 → 右结果键列；必须覆盖对象、期间等实际粒度')
+    left_fields: dict[str, str] = Field(min_length=1, description='输出列名 → 左结果原列名；键列自动保留')
+    right_fields: dict[str, str] = Field(min_length=1, description='输出列名 → 右结果原列名；输出列名不能冲突')
+
+    @model_validator(mode='after')
+    def distinct_fields(self):
+        if self.result_id == self.right_result_id:
+            raise ValueError('整合需要两份不同结果；同一结果直接比较或计算')
+        for mapping in (self.join_keys, self.left_fields, self.right_fields):
+            if any(not key.strip() or not value.strip() for key, value in mapping.items()):
+                raise ValueError('字段映射不能为空')
+        _column_names(list(self.join_keys.values()))
+        _column_names([*self.join_keys, *self.left_fields, *self.right_fields, 'alignment_status'])
+        return self
+
+
 class _PeriodRequest(_Request):
     period_field: str = Field(min_length=1)
     base_period: str | int | float
@@ -161,7 +180,7 @@ class StateDurationRequest(_Request):
 
 
 CalculatorRequest = Annotated[
-    SumRequest | ColumnStatsRequest | ChangeRequest | RatioRequest | PeriodChangeRequest | ProductDecompositionRequest | StateDurationRequest,
+    SumRequest | ColumnStatsRequest | ChangeRequest | RatioRequest | AlignResultsRequest | PeriodChangeRequest | ProductDecompositionRequest | StateDurationRequest,
     Field(discriminator='operation'),
 ]
 _ADAPTER = TypeAdapter(CalculatorRequest)
@@ -299,7 +318,7 @@ def _group_output_fields(request: _PeriodRequest) -> dict[str, str]:
     return mapping
 
 
-def execute_calculation(request: dict | _Request, data: dict) -> dict:
+def execute_calculation(request: dict | _Request, data: dict, *, right_data: dict | None = None) -> dict:
     request = parse_calculation_request(request)
     if not isinstance(data, dict) or data.get('complete') is not True:
         raise CalculationError('完整计算需要完整结果；请先取得完整聚合或受控结果引用', code='incomplete_result')
@@ -311,6 +330,9 @@ def execute_calculation(request: dict | _Request, data: dict) -> dict:
     total = data.get('total_rows')
     if isinstance(total, int) and total > len(rows):
         raise CalculationError('保存行数少于总行数，不能把片段作为完整结果计算', code='incomplete_result')
+    if isinstance(request, AlignResultsRequest):
+        from .result_alignment import align_results
+        return align_results(request, data, right_data)
     if isinstance(request, StateDurationRequest):
         from .state_duration import calculate_state_duration
         return calculate_state_duration(request, data)

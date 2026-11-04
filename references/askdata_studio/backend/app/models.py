@@ -66,14 +66,16 @@ class Interpretation(BaseModel):
 
 
 class VisualizationSpec(BaseModel):
-    type: Literal["bar", "pie"]
+    type: Literal["bar", "grouped_bar", "line", "area", "pie", "donut", "scatter"]
     title: str
+    section_heading: str | None = Field(default=None, max_length=160, description="图表对应的正文小节标题，原样填写；程序将图表放在该标题下、分析文字前。未匹配时使用默认位置。")
     source_task_id: str = ""
     source_result_id: str | None = None
     source_version: str | None = None
     category_field: str
-    series_field: str | None = Field(default=None, description='对比多个期间或组别时，指向实际期间/组别列；标签同时显示类别和系列')
+    series_field: str | None = Field(default=None, description='分组柱状图或多系列趋势图使用的实际组别列')
     value_field: str
+    x_field: str | None = Field(default=None, description="散点图横轴的实际数值列；纵轴为value_field，点名为category_field")
     max_items: int = Field(default=12, ge=3, le=30)
     order: Literal["value_desc", "category_asc", "source"] = "value_desc"
     unit: str | None = None
@@ -105,6 +107,7 @@ class AnalysisReport(BaseModel):
     visualizations: list[VisualizationSpec] = Field(default_factory=list)
     data_sources: list[ReportDataSource] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+    continuation_context: dict[str, Any] = Field(default_factory=dict)
 
 
 class QueryResult(BaseModel):

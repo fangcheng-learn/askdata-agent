@@ -86,7 +86,10 @@ class DataQaAgent:
         progress = context.get("progress") or {}
         report_context = {key: context[key] for key in (
             "task", "semantics", "data_capabilities", "delivery_policy", "unsuccessful_attempts",
-            "unsuccessful_attempts_policy", "investigation_checks", "previous_report") if key in context}
+            "unsuccessful_attempts_policy", "investigation_checks", "previous_report",
+            "source_tasks", "prior_reports", "prior_user_messages", "user_feedback",
+            "report_reference_closure", "trust_boundary", "inherited_evidence_gaps",
+            "source_gaps", "data_gaps") if key in context}
         report_context["progress"] = {
             "core_questions": [{"question": question["question"]}
                 for question in progress.get("core_questions") or [] if question.get("question")],
@@ -100,7 +103,10 @@ class DataQaAgent:
         report_context['claims_policy'] = ('调查判断不是已认证事实，investigator_assessment仅标识调查中的支持／反驳／未知判断，须与真实结果核对。相关正常检查、反证及未查明事项也必须交代；'
             '不要从头另编归因故事，也不要直接照抄调查解释。')
         from .report_reading import compact_reading_view, reading_view
-        report_context['numeric_reading_view'] = compact_reading_view(reading_view(sources))
+        # Incomplete previews already appear in evidence. Repeating their rows
+        # as formatted numbers adds no comparison and crowds out full results.
+        report_context['numeric_reading_view'] = compact_reading_view(reading_view(
+            [source for source in sources if source.complete]))
         report_context["evidence"] = [{**entry, "query_contract": {
             key: value for key, value in (entry.get("query_contract") or {}).items() if key != "validation"
         }} for entry in evidence]
@@ -112,16 +118,25 @@ class DataQaAgent:
         # result-memory summaries can contain superseded, unsupported assertions.
         if (context.get("last_observation") or {}).get("type") == "delivery_repair":
             report_context["revision_feedback"] = context.get("feedback")
+        from ..workflows.investigation_output import InvestigationReport
         payload = {
             "mode": "investigation_report",
             "audience": "运营负责人；需要当前判断、重点变化、解释和行动优先级，而非执行与审计明细",
             "query": query,
             "available_data_sources": [source.model_dump(mode="json", exclude={"rows"}) for source in sources],
-            "output_protocol": {"visualization_schema": VisualizationSpec.model_json_schema(),
+            "output_protocol": {"report_schema": InvestigationReport.model_json_schema(),
+                                "visualization_schema": VisualizationSpec.model_json_schema(),
                                 "valid_citations": [f"[{key}]" for key in self._citation_aliases(sources)],
                                 "citation_bindings": self._citation_aliases(sources),
-                                "instructions": "依据本次分析选择有用图表；只使用实际Schema允许的类型及字段。正文可用<!-- chart:完整result_id:实际value_field -->指定图的位置；正文优先用[R1]等提供的短引用，程序绑定完整ID；多任务重名时用完整ID。没有适用数据时图表可为空；省略source_version由服务端绑定。"},
-            "context": report_context,
+                                "presentation_guidance": {
+                                    "comparison": "先写指标上升/下降X%（前值 → 后值）；数值取numeric_reading_view的change_rate、base、current，不从旧稿抄变化率。",
+                                    "table": "主表使用前期、本期、变化幅度；比率不再另列百分点差，金额与数量按需补差额；单位写列标题或指标名。",
+                                    "emphasis": "加粗关键完整方向短语，如 **上升8.6%**；关键绝对值可加粗。不要生成HTML颜色，前端上升绿、下降红。",
+                                    "coverage": "先查看已有比较中的上升、下降和稳定项，再选择重要发现；若存在会抵消总体下降的上升项，必须一并解释其作用，不能只摘录负向指标。",
+                                    "prior_report": "旧稿仅帮助理解用户所指，不是本次格式和事实模板。用户要求改表达时重新写受影响段落与表格，按当前证据纠正旧稿，不仅给旧文加粗。",
+                                },
+                                "instructions": "按report_schema先组织overview、analysis_points和action_items；观点选择表或图，解释紧随其后，不重复数字。比较优先变化率加前后值，强调完整方向短语；比率主表不默认另列百分点差，单位写表头或指标名。修订时按本次要求重新组织受影响的段落和表格，旧稿不是格式模板。evidence_ids使用citation_bindings中的ID键，不加方括号，程序绑定完整ID；多任务重名时用完整ID。正文可用[R1]短引用。图表只能绑定真实字段，不抄写数据；没有合适图表时使用表格或文字。省略source_version由服务端绑定。"},
+            "context": model_analysis_context(report_context),
         }
         previous = context.get('previous_report') or {}
         revision = bool(report_context.get('revision_feedback') and previous.get('markdown'))
@@ -140,7 +155,10 @@ class DataQaAgent:
                         self.model_client.chat_json(system, json.dumps(payload, ensure_ascii=False)))
             try:
                 candidate = self._apply_report_revision(previous, response) if revision else response
-                return self._build_investigation_report(candidate, evidence, access_scope)
+                from .report_composition import compose_report
+                candidate = compose_report(candidate)
+                built = self._build_investigation_report(candidate, evidence, access_scope)
+                return self._repair_investigation_charts(candidate, built, evidence, access_scope, call_model)
             except (ReportReferenceError, ReportRevisionError) as exc:
                 if attempt:
                     raise
@@ -150,6 +168,45 @@ class DataQaAgent:
                     'instruction': ('修正刚才的局部修订格式、匹配位置或引用，仍返回revise_report；所有before仍以previous_report原稿为准。'
                                     if revision else '只修正明确无效的引用和相应图表来源，保留正文、数字及正确内容；不能猜配来源，依据提供的证据核对。')}}
         raise AssertionError('unreachable')
+
+    def _repair_investigation_charts(self, candidate, built, evidence, access_scope, call_model):
+        """One bounded presentation-only repair. Never block an otherwise usable report."""
+        failures = [item for item in built.diagnostics if item.get('stage') == 'chart_validation'
+                    and item.get('chart_index', 0) > 0]
+        if not failures:
+            return built
+        from ..workflows.investigation_output import ReportChartRepair
+        raw = candidate.get('report') if isinstance(candidate.get('report'), dict) else candidate
+        aliases = self._citation_aliases(built.report.data_sources)
+        failed_ids = {aliases.get(item.get('source_result_id'), item.get('source_result_id')) for item in failures}
+        payload = {'mode': 'chart_repair', 'failed_charts': failures,
+                   'available_data_sources': [{**s.model_dump(mode='json', exclude={'rows'}),
+                       'row_preview': s.rows[:20] if s.result_id in failed_ids else [],
+                       'preview_truncated': len(s.rows)>20} for s in built.report.data_sources],
+                   'output_protocol': ReportChartRepair.model_json_schema()}
+        system = ('只修复报告中失败的图表配置，返回repairs数组，每项chart_index与visualization。'
+                  '不改正文、不生成数值、不调用SQL。使用真实来源、字段、期间和粒度。'
+                  'grouped_bar必须指定series_field；若类别已经唯一且只有一个系列，改用bar。'
+                  '多期分类比较用实际期间列作series_field。不得把不同月份混成同一类别。'
+                  '只处理failed_charts中的序号；确实没有适用数据时visualization=null。')
+        try:
+            response = call_model(system, payload) if call_model else self.model_client.chat_json(system, json.dumps(payload, ensure_ascii=False))
+            repair = ReportChartRepair.model_validate(response)
+            allowed = {f['chart_index'] for f in failures}
+            updates = {item.chart_index: item.visualization for item in repair.repairs}
+            if len(updates) != len(repair.repairs) or not set(updates) <= allowed:
+                raise ValueError('图表修复只能引用失败图表的唯一序号')
+            charts = [{**updates[i].model_dump(mode='json'), 'section_heading': chart.get('section_heading')} if i in updates else chart
+                      for i, chart in enumerate(raw.get('visualizations') or [], 1)
+                      if i not in updates or updates[i] is not None]
+            fixed = self._build_investigation_report({**raw, 'visualizations': charts}, evidence, access_scope)
+            fixed.diagnostics = [*built.diagnostics, {'stage': 'chart_repair', 'attempts': 1,
+                'updated_indices': sorted(updates), 'remaining_invalid': len(fixed.diagnostics)}, *fixed.diagnostics]
+            return fixed
+        except (ValueError, RuntimeError, TimeoutError, OSError) as exc:
+            built.diagnostics.append({'stage': 'chart_repair', 'attempts': 1, 'status': 'unavailable',
+                                      'error': str(exc)[:500]})
+            return built
 
     @staticmethod
     def _apply_report_revision(previous: dict, response: dict) -> dict:
@@ -376,6 +433,8 @@ class DataQaAgent:
                 raise ValueError("图表系列引用了不存在的结果字段")
             numeric: list[float] = []
             for row in source.rows:
+                if row.get(spec.category_field) is None or (spec.series_field and row.get(spec.series_field) is None):
+                    raise ValueError("图表类别或系列字段缺失")
                 value = row.get(spec.value_field)
                 if isinstance(value, bool):
                     raise ValueError("图表数值列不能使用布尔值")
@@ -386,17 +445,72 @@ class DataQaAgent:
                 if not math.isfinite(number):
                     raise ValueError("图表数值字段包含非有限值")
                 numeric.append(number)
-            if spec.type == "pie" and (any(value < 0 for value in numeric) or len(numeric) > spec.max_items):
+            if spec.type == "grouped_bar" and not spec.series_field:
+                raise ValueError("分组柱状图需要实际series_field")
+            if spec.type in {"grouped_bar", "line", "area"} or (spec.type == "bar" and spec.series_field):
+                pairs = [(str(row[spec.category_field]), str(row.get(spec.series_field, ""))) for row in source.rows]
+                if len(set(pairs)) != len(pairs):
+                    raise ValueError("图表类别与系列不唯一，请指定区分期间或组别的series_field；不自动求和或平均")
+                if len({pair[1] for pair in pairs}) > 12:
+                    raise ValueError("图表系列过多，请选择更合适的已有汇总结果")
+            if spec.type in {"line", "area"} and spec.order == "value_desc":
+                spec.order = "category_asc"
+            if spec.type == "scatter":
+                if not spec.x_field or spec.x_field not in source.columns:
+                    raise ValueError("散点图需要实际数值列x_field")
+                for row in source.rows:
+                    value = row.get(spec.x_field)
+                    if isinstance(value, bool) or value is None or not math.isfinite(float(value)):
+                        raise ValueError("散点图横轴包含非数值或非有限值")
+            if spec.type in {"pie", "donut"} and (any(value < 0 for value in numeric) or len(numeric) > spec.max_items):
                 raise ValueError("饼图不能隐藏负值或截取部分分类后表达总体占比")
             for attribute, mapping in (("unit", source.units), ("currency", source.currencies)):
                 expected = mapping.get(spec.value_field)
-                declared = getattr(spec, attribute)
-                if declared is not None and declared != expected:
-                    raise ValueError(f"图表{attribute}与结果元信息不一致或未经登记")
+                # Values always come from the frozen source. Bind its raw unit;
+                # display conversion is deterministic and never model-specified.
                 setattr(spec, attribute, expected)
             if spec.value_field in source.precisions:
                 spec.precision = source.precisions[spec.value_field]
         return output
+
+    def _report_from_existing(self, query: str, contexts: dict, access_scope: dict) -> DataQaResult:
+        from .report_continuation import continuation_context
+        from ..workflows.investigation_output import output_schema
+        lineage = continuation_context(query, contexts, str(access_scope.get('task_id') or ''))
+        # The current query is already at payload.query. Historical feedback is
+        # transmitted once, alongside the selected prior report and real rows.
+        previous_reports = [{k: v for k, v in report.items() if k != 'continuation_context'}
+                            for report in contexts.get('prior_reports') or []]
+        context = {**contexts, 'task': {'original_questions': lineage['original_questions']},
+                   'prior_reports': previous_reports,
+                   'user_feedback': {'source': 'user', 'database_verified': False,
+                       'history': lineage['user_messages'][:-1],
+                       'current_request_location': 'payload.query'}}
+        context.pop('prior_user_messages', None)
+        columns = {item['id']: item.get('columns') or [] for item in contexts['evidence']}
+
+        def generate(system, payload):
+            node = 'chart_repair' if payload.get('mode') == 'chart_repair' else 'draft'
+            with using_output_schema('existing_evidence_report', output_schema(node, result_columns=columns)):
+                return self.model_client.chat_json(system, json.dumps(payload, ensure_ascii=False))
+
+        try:
+            result = self.draft_investigation(query, context, access_scope,
+                                             call_model=generate)
+            # Old investigative questions may be resolved by the user's new
+            # background. Only actual unreadable/missing sources carry over
+            # mechanically; the Agent reassesses the old business gaps.
+            inherited = [str(item) for item in contexts.get('data_gaps') or []]
+            result.evidence_gaps = list(dict.fromkeys([*inherited, *result.evidence_gaps]))
+            result.warnings = list(dict.fromkeys([*result.warnings, *contexts.get('source_gaps', [])]))
+            if result.report:
+                result.report.continuation_context = lineage
+                result.report.warnings = list(dict.fromkeys([*result.report.warnings, *inherited]))
+            return result
+        except (BudgetStop, PipelineStageError):
+            raise
+        except (RuntimeError, ValueError, KeyError, TypeError) as exc:
+            raise PipelineStageError('qa_answer', str(exc)) from exc
 
     def run(
         self,
@@ -409,6 +523,8 @@ class DataQaAgent:
             budget.model_node = "draft" if budget.phase == "closing" else "data_qa"
         metadata = contexts.get('mode') == 'metadata'
         managed = isinstance(contexts.get('evidence'), list)
+        if managed and contexts.get('analysis_mode') == 'report':
+            return self._report_from_existing(query, contexts, access_scope)
         client = None if managed or metadata else self.mcp_client_factory(access_scope)
         tools = [] if managed or metadata else [
             tool for tool in client.list_tools()

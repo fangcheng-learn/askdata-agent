@@ -282,6 +282,21 @@ class MultiturnEvidenceTest(unittest.TestCase):
         self.assertFalse(bundle['prior_reports'][0]['references'][1]['complete'])
         self.assertTrue(bundle['data_gaps'])
 
+    def test_report_raw_calculation_input_does_not_crowd_out_later_summary(self):
+        raw = {**self.entries[0], 'result_kind': 'calculation_source'}
+        summary = {**self.entries[1], 'result_kind': 'calculated_result',
+                   'source_result_id': raw['id'], 'calculation_complete': True}
+        state = self.state([raw, summary], analysis_mode='report')
+        original = deepcopy(state)
+        bundle = load_analysis_evidence(state, self.engine, max_total_rows=22)
+        self.assertEqual([len(e['rows']) for e in bundle['evidence']], [20, 2])
+        self.assertFalse(bundle['evidence'][0]['complete'])
+        self.assertEqual(bundle['evidence'][0]['total_rows'], 300)
+        self.assertTrue(bundle['evidence'][1]['complete'])
+        self.assertEqual(state, original)
+        # Ordinary data analysis continues to receive the full original data.
+        self.assertEqual(len(load_analysis_evidence(self.state([raw]), self.engine)['evidence'][0]['rows']), 300)
+
     def test_model_view_deduplicates_validation_without_altering_stored_evidence(self):
         entry = deepcopy(self.entries[0])
         entry['column_metadata'] = {'gmv': {'unit': 'cents', 'definition': '保持原口径'}}
@@ -576,6 +591,52 @@ class MultiturnEvidenceTest(unittest.TestCase):
                          ['old-task:R1', 'old-task:R2'])
         self.assertIsNone(current_output_schema.get())
 
+    def test_user_report_revision_uses_shared_report_pipeline_and_retains_feedback_next_turn(self):
+        from types import SimpleNamespace
+        from app.structured_output import current_output_schema
+        response = {'action': 'report', 'title': '更新分析', 'overview': '据用户补充，本期没有调整标价。',
+            'analysis_points': [{'title': '保留实际观察', 'presentation': 'table',
+                'table_markdown': '| 品类 | 增减 |\n| --- | --- |\n| A | -30 |\n| B | +10 |',
+                'analysis': '金额变化仍存在，促销是否变化尚待核实。', 'evidence_ids': ['old-task:R2']}],
+            'action_items': [], 'evidence_gaps': []}
+        workflow, model = self.workflow([deepcopy(response), deepcopy(response)])
+        workflow.config = SimpleNamespace(report_content_review_enabled=False)
+        schemas = []
+        chat = model.chat_json
+        def capture(system, payload):
+            schemas.append(deepcopy(current_output_schema.get()))
+            return chat(system, payload)
+        model.chat_json = capture
+        state = self.state(query='本期没有调整标价，请据此修订报告', analysis_mode='report')
+        parent = json.loads(state['recent_result_context'])
+        parent.update(query='销售为什么下降', status='partial', stop_reason='需确认标价调整',
+                      requirements=[{'question': '是否调整标价', 'status': 'open'}])
+        state['recent_result_context'] = json.dumps(parent)
+        before = deepcopy(state)
+        first = workflow._answer_qa(state)['result']
+        self.assertEqual(first['status'], 'completed')
+        self.assertIn('## 分析综述', first['report']['markdown'])
+        self.assertIn('| A | -30 |', first['report']['markdown'])
+        self.assertEqual(first['content_review_status'], 'skipped')
+        saved = first['report']['continuation_context']
+        self.assertEqual(saved['original_questions'], ['销售为什么下降'])
+        self.assertEqual(saved['user_messages'][-1]['user_message'], state['query'])
+        self.assertEqual(state, before)
+        next_parent = {**parent, 'task_id': 'follow-task', 'query': state['query'],
+                       'report': first['report'], 'analysis': first['report']['markdown']}
+        next_state = self.state(task_id='follow-again', query='把建议缩短，保留前面的说明', analysis_mode='report',
+                               recent_result_context=json.dumps(next_parent), short_term_context='')
+        second = workflow._answer_qa(next_state)['result']
+        received = model.calls[1][1]['context']
+        self.assertEqual(received['task']['original_questions'], ['销售为什么下降'])
+        self.assertEqual(received['user_feedback']['history'][0]['user_message'], state['query'])
+        self.assertFalse(received['user_feedback']['database_verified'])
+        self.assertNotIn('result_ref', json.dumps(received))
+        self.assertEqual(len(second['report']['continuation_context']['user_messages']), 2)
+        self.assertEqual(second['evidence'][0]['task_id'], 'old-task')
+        self.assertEqual(len(model.calls), 2)
+        self.assertTrue(all('analysis_points' in item['schema']['properties'] for item in schemas))
+
     def test_report_generation_and_review_share_current_evidence_not_historical_approval(self):
         self.entries[0]['interpretation_limits'] = ['金额不是因果效果']
         self.entries[0]['units'] = {'gmv': 'EUR cents'}
@@ -594,7 +655,7 @@ class MultiturnEvidenceTest(unittest.TestCase):
         generation, audit = model.calls[0][1]['context'], model.calls[1][1]
         self.assertEqual(json.dumps(generation, ensure_ascii=False).count(parent_text), 1)
         self.assertNotIn('short_term', generation)
-        self.assertEqual(generation['prior_user_messages'][0]['user_message'], '比较这两个期间')
+        self.assertEqual(generation['user_feedback']['history'][0]['user_message'], '比较这两个期间')
         self.assertEqual(generation['prior_reports'][0]['material_role'], 'historical_claims_to_recheck')
         self.assertEqual(generation['trust_boundary'], audit['trust_boundary'])
         self.assertEqual(generation['source_tasks'], audit['source_tasks'])
@@ -673,11 +734,14 @@ class MultiturnEvidenceTest(unittest.TestCase):
             item.update(finding=finding, context_refs=['current_question', 'evidence_gaps', 'draft'])
         workflow, model = self.workflow([self.report(markdown=draft, visualizations=[]), review])
         result = workflow._answer_qa(state)['result']
-        self.assertEqual(result['status'], 'partial')
+        # This turn completes a bounded report supplement; the old unresolved
+        # investigation is retained as history, not reimposed as a new failure.
+        self.assertEqual(result['status'], 'completed')
         self.assertTrue(result['final_reviewed'])
         self.assertEqual(result['report']['markdown'], draft)
-        self.assertIn('因果尚未查明', result['stop_reason'])
-        self.assertTrue(result['report']['warnings'])
+        reuse = next(item for item in result['execution_log'] if item['stage'] == 'existing_evidence_reuse')
+        self.assertEqual(reuse['source_tasks'][0]['status'], 'partial')
+        self.assertTrue(reuse['warnings'])
         self.assertTrue(result['reviews'][0]['accepted'])
         self.assertEqual(result['reviews'][0]['validation_errors'], [])
         self.assertIn('准确承认未取证本身可以通过', model.calls[1][0])

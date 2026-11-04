@@ -141,6 +141,7 @@ export type ArtifactDetail =
   | {
       type: "chart";
       chartType?: ChartArtifactType;
+      reportChart?: string;
       unit?: string;
       points: ChartArtifactPoint[];
       series?: ChartArtifactSeries[];

@@ -478,6 +478,8 @@ class ReactInvestigationHarness(SqlBatchController):
         if task.protocol_version >= 4:
             from .investigation_output import output_schema
             schema_node = 'report_revision' if node == 'draft' and payload.get('mode') == 'report_revision' else node
+            if node == 'draft' and payload.get('mode') == 'chart_repair':
+                schema_node = 'chart_repair'
             schema = output_schema(schema_node, skill_names=[entry['name'] for entry in self.workflow.skills.list()
                                                       if entry['name'] not in task.skills and entry['name'] != 'database_query'],
                                    result_columns={e['id']:e.get('columns') or [] for e in task.evidence
@@ -1589,6 +1591,8 @@ class ReactInvestigationHarness(SqlBatchController):
         """Bind calculation repairs to real inputs, never to a fresh display ID."""
         refs = [request.get('result_id')] if isinstance(request.get('result_id'), str) else []
         operation = request.get('operation')
+        if operation == 'align_results' and isinstance(request.get('right_result_id'), str):
+            refs.append(request['right_result_id'])
         logical_key = _fingerprint({'source': task.state['datasource_id'], 'inputs': refs,
                                     'operation': operation})
         fields_by_operation = {'sum': ('column',), 'column_stats': ('column',),
@@ -1675,12 +1679,22 @@ class ReactInvestigationHarness(SqlBatchController):
             raise ValueError('完整聚合需要完整结果；当前结果超过保存上限，应重新查询完整聚合')
         if task.protocol_version >= 3:
             from ..querying.calculations import execute_calculation
+            sources = [evidence]
+            right_data = None
+            if request.get('operation') == 'align_results':
+                right_evidence, right_data = self._read_evidence(task, request.get('right_result_id'))
+                sources.append(right_evidence)
+                right_data = {**right_data, 'column_metadata': right_evidence.get('column_metadata') or right_data.get('column_metadata') or {}}
+                action['input_result_ids'] = [source['id'] for source in sources]
+                action['depends_on'] = list(dict.fromkeys(source['step_id'] for source in sources if source.get('step_id')))
             calculated = execute_calculation(request, {**data,
                 'schema_graph': {'tables': list(task.table_pool.values()),
                                  'fields': list(task.field_pool.values())},
                 'observation_cutoff_at': (task.state.get('scenario') or {}).get('observation_cutoff_at'),
                 'column_metadata':
-                                             evidence.get('column_metadata') or data.get('column_metadata') or {}})
+                                             evidence.get('column_metadata') or data.get('column_metadata') or {}}, right_data=right_data)
+            calculated['source_results'] = [{'result_id': source['id'],
+                'source_version': source.get('fingerprint') or source.get('version')} for source in sources]
             task_id, user_id, datasource = self._identity(task)
             ref = uuid.uuid4().hex
             full = {**calculated, 'user_id': user_id, 'task_id': task_id,
@@ -1691,7 +1705,7 @@ class ReactInvestigationHarness(SqlBatchController):
             saved = self._save_evidence(task, action, output, full)
             saved.update({key: calculated[key] for key in ('column_metadata', 'metric_metadata',
                 'diagnostics', 'calculation_complete', 'operation', 'parameters', 'interpretation',
-                'group_field_map') if key in calculated})
+                'group_field_map', 'source_results') if key in calculated})
             saved['source_result_id'] = evidence['id']
             saved['source_version'] = evidence.get('fingerprint') or evidence.get('version')
             task.observation = {'type': 'calculation', 'action_id': action['id'],
